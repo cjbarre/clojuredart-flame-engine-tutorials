@@ -1,0 +1,15 @@
+(ns acme.main
+  (:require ["package:flutter/material.dart" :as m]
+            ["package:flutter/widgets.dart" :as fw]
+            [cljd.flutter.alpha2 :refer [widget]]))
+
+(defn main []
+  (fw/WidgetsFlutterBinding.ensureInitialized)
+  (let [] 
+    (m/runApp
+     (m/MaterialApp
+      .title "idiom | An experimental dictionary for Tibetan translators"
+      .theme (m/ThemeData .brightness m/Brightness.dark)
+      .home
+      (widget
+       (m/Text "Hello, world"))))))
