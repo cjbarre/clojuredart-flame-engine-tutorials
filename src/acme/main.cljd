@@ -1,11 +1,10 @@
 (ns acme.main
   (:require ["package:flutter/material.dart" :as m]
             ["package:flutter/widgets.dart" :as fw]
-            ["dart:ui" :refer [Color]]
             ["package:flame/flame.dart" :as flame]
             ["package:flame/game.dart" :as game]
-            ["package:flame/experimental.dart" :refer [World CameraComponent Viewfinder]]
-            ["package:flame/components.dart" :as components :refer [PositionComponent Anchor CircleComponent Sprite]]
+            ["package:flame/experimental.dart" :refer [World CameraComponent]]
+            ["package:flame/components.dart" :as components :refer [PositionComponent Anchor Sprite]]
             ["package:flame/input.dart" :as input :refer [Vector2]]
             [cljd.flutter.alpha2 :refer [widget run]]))
 
