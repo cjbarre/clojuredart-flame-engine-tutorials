@@ -15,20 +15,20 @@
 (def card-radius 100.0)
 (def card-size (Vector2 card-width card-height))
 
-(deftype Stock [args]
-  :extends (PositionComponent .size (:size args) .position (:position args))
+(deftype Stock []
+  :extends PositionComponent
   (^:getter debugMode [_] true))
 
-(deftype Foundation [args]
-  :extends (PositionComponent .size (:size args) .position (:position args))
+(deftype Foundation []
+  :extends PositionComponent
   (^:getter debugMode [_] true))
 
-(deftype Pile [args]
-  :extends (PositionComponent .size (:size args) .position (:position args))
+(deftype Pile []
+  :extends PositionComponent
   (^:getter debugMode [_] true))
 
-(deftype Waste [args]
-  :extends (PositionComponent .size (:size args) .position (:position args))
+(deftype Waste []
+  :extends PositionComponent
   (^:getter debugMode [_] true))
 
 (def klondike-sprite-name "klondike-sprites.png")
@@ -43,30 +43,35 @@
   :extends game/FlameGame
   (^:async onLoad [this]
     (await (.load (. flame/Flame images) klondike-sprite-name))
-    (let [stock (Stock {:size card-size :position (Vector2 card-gap card-gap)})
-          waste (Waste {:size card-size :position (Vector2 (+ card-width (* card-gap 2)) card-gap)})
-          foundations (mapv #(Foundation {:size card-size
-                                          :position (Vector2 (+ (* (+ % 3) (+ card-width card-gap)) card-gap) card-gap)})
+    (let [stock (doto (Stock)
+                  (-> .-size (set! card-size))
+                  (-> .-position (set! (Vector2 card-gap card-gap))))
+          waste (doto (Waste)
+                  (-> .-size (set! card-size))
+                  (-> .-position (set! (Vector2 (+ card-width (* card-gap 2)) card-gap))))
+          foundations (mapv #(doto (Foundation)
+                               (-> .-size (set! card-size))
+                               (-> .-position (set! (Vector2 (+ (* (+ % 3) (+ card-width card-gap)) card-gap) card-gap))) {:size card-size})
                             (range 5))
-          piles (mapv #(Pile {:size card-size :position (Vector2 (+ card-gap (* % (+ card-width card-gap)))
-                                                                 (+ card-height (* 2 card-gap)))})
+          piles (mapv #(doto (Pile)
+                         (-> .-size (set! card-size))
+                         (-> .-position (set! (Vector2 (+ card-gap (* % (+ card-width card-gap)))
+                                                       (+ card-height (* 2 card-gap))))))
                       (range 8))
           world (World)
-          view-finder (Viewfinder)
-          camera (CameraComponent .world world)
-          _ (set! (.visibleGameSize (.-viewfinder camera)) (Vector2 (/ (+ (* card-width 7) (* card-gap 8)) 2) (+ (* 4 card-height) (* 3 card-gap))))
-          _ (set! (.position (.-viewfinder camera) ) (Vector2 (+ (* card-width 3.5) (* card-gap 4)) 0))
-          _ (set! (.anchor (.-viewfinder camera) ) Anchor/topCenter)]
-      (await (.add world stock))
-      (await (.add world waste))
-      (await (.addAll world foundations))
-      (await (.addAll world piles))
-      (await (.add this world))
-      (await (.add this camera)))
+          _ (await (.add world stock))
+          _ (await (.add world waste))
+          _ (await (.addAll world foundations))
+          _ (await (.addAll world piles))
+          camera (doto (CameraComponent .world world)
+                   (-> .-viewfinder .-visibleGameSize (set! (Vector2 (+ (* card-width 7) (* card-gap 8)) (+ (* 4 card-height) (* 3 card-gap)))))
+                   (-> .-viewfinder .-position (set! (Vector2 (+ (* card-width 3.5) (* card-gap 4)) 0)))
+                   (-> .-viewfinder .-anchor (set! Anchor/topCenter)))
+          _ (await (.add this world))
+          _ (await (.add this camera))])
     nil))
 
 (defn main []
   (fw/WidgetsFlutterBinding.ensureInitialized)
-  (.fullScreen (. flame/Flame device))
   (let [game (KlondikeGame)] 
-    (run (game/GameWidget .game game))))
+    (m/runApp (game/GameWidget .game game))))
