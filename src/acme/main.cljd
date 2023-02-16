@@ -4,9 +4,79 @@
             ["package:flame/flame.dart" :as flame]
             ["package:flame/game.dart" :as game]
             ["package:flame/experimental.dart" :refer [World CameraComponent]]
-            ["package:flame/components.dart" :as components :refer [PositionComponent Anchor Sprite]]
+            ["package:flame/components.dart" :as components :refer [PositionComponent Anchor Sprite Component]]
             ["package:flame/input.dart" :as input :refer [Vector2]]
+            ["dart:developer" :as dev]
             [cljd.flutter.alpha2 :refer [widget run]]))
+
+(defn c [component] (:component component))
+
+(defn cs [components] (mapv :component components))
+
+(defonce db (atom {:id 0}))
+
+(def debug-mode? true)
+
+(defn id
+  [db]
+  (let [id (:id db)]
+    (swap! db update :id inc)
+    id))
+
+(def klondike-sprite-name "klondike-sprites.png")
+
+(defn klondike-sprite
+  [{:keys [^double x ^double y ^double width ^double height]}]
+  (Sprite (.fromCache (. flame/Flame images) klondike-sprite-name)
+          .srcPosition (Vector2 x y)
+          .srcSize (Vector2 width height)))
+
+;;;;;;;;;;;;;;
+;;;; Suits ;;;
+;;;;;;;;;;;;;;
+
+(defn suit
+  [value label color sprite-coord]
+  {:value value
+   :label label
+   :color color
+   :sprite (klondike-sprite sprite-coord)})
+
+(defonce suits
+  {0 (suit 0 "♥" :red {:x 1176 :y 17 :w 172 :h 183})
+   1 (suit 1 "♦" :red {:x 1176 :y 17 :w 172 :h 183})
+   2 (suit 2 "♣" :black {:x 1176 :y 17 :w 172 :h 183})
+   3 (suit 3 "♠" :black {:x 1176 :y 17 :w 172 :h 183})})
+
+;;;;;;;;;;;;;;
+;;;; Ranks ;;;
+;;;;;;;;;;;;;;
+
+(defn rank
+  [value label red-sprite-coord black-sprite-coord]
+  {:value value
+   :label label
+   :red-sprite (klondike-sprite red-sprite-coord)
+   :black-sprite (klondike-sprite black-sprite-coord)})
+
+(defonce ranks
+  {1 (rank 1 "A" {:x 335 :y 164 :w 120 :h 129} {:x 789 :y 161 :w 120 :h 129})
+   2 (rank 2 "2" {:x 20 :y 19 :w 83 :h 125} {:x 15 :y 322 :w 83 :h 125})
+   3 (rank 3 "3" {:x 122 :y 19 :w 80 :h 127} {:x 117 :y 322 :w 80 :h 127})
+   4 (rank 4 "4" {:x 213 :y 12 :w 93 :h 132} {:x 208 :y 315 :w 93 :h 132})
+   5 (rank 5 "5" {:x 314 :y 21 :w 85 :h 125} {:x 309 :y 324 :w 85 :h 125})
+   6 (rank 6 "6" {:x 419 :y 17 :w 84 :h 129} {:x 414 :y 320 :w 84 :h 129})
+   7 (rank 7 "7" {:x 509 :y 21 :w 92 :h 128} {:x 505 :y 324 :w 92 :h 128})
+   8 (rank 8 "8" {:x 612 :y 19 :w 78 :h 127} {:x 607 :y 322 :w 78 :h 127})
+   9 (rank 9 "9" {:x 709 :y 19 :w 84 :h 130} {:x 704 :y 322 :w 84 :h 130})
+   10 (rank 10 "10" {:x 810 :y 20 :w 137 :h 127} {:x 805 :y 322 :w 137 :h 127})
+   11 (rank 11 "J" {:x 15 :y 170 :w 56 :h 126} {:x 469 :y 167 :w 56 :h 126})
+   12 (rank 12 "Q" {:x 92 :y 168 :w 132 :h 128} {:x 547 :y 165 :w 132 :h 128})
+   13 (rank 13 "K" {:x 243 :y 170 :w 92 :h 123} {:x 696 :y 167 :w 92 :h 123})})
+
+;;;;;;;;;;;;;;
+;;;; Card ;;;;
+;;;;;;;;;;;;;;
 
 (def card-width 1000.0)
 (def card-height 1400.0)
@@ -14,71 +84,107 @@
 (def card-radius 100.0)
 (def card-size (Vector2 card-width card-height))
 
-(deftype Stock []
-  :extends PositionComponent
-  (^:getter debugMode [_] true))
+(defn flip
+  [card]
+  (update card :face-up? not))
 
-(deftype Foundation []
-  :extends PositionComponent
-  (^:getter debugMode [_] true))
+(defn card
+  [{:keys [rank suit face-up?]}]
+  {:kind :card
+   :component (doto (reify PositionComponent
+                      (toString [_] (str (:label rank) (:label suit))))
+                (-> .-size (set! card-size)))})
 
-(deftype Pile []
-  :extends PositionComponent
-  (^:getter debugMode [_] true))
+(defn cards
+  [{:keys [_]}])
 
-(deftype Waste []
-  :extends PositionComponent
-  (^:getter debugMode [_] true))
+;;;;;;;;;;;;;;;
+;;;; Board ;;;;
+;;;;;;;;;;;;;;;
 
-(def klondike-sprite-name "klondike-sprites.png")
+(defn stock
+  ([] (stock {}))
+  ([_]
+   {:kind :stock
+    :component (doto (PositionComponent)
+                 (-> .-size (set! card-size))
+                 (-> .-position (set! (Vector2 card-gap card-gap)))
+                 (-> .-debugMode (set! debug-mode?)))}))
 
-(defn klondike-sprite 
-  [^double x ^double y ^double width ^double height]
-  (Sprite (.fromCache (. flame/Flame images) klondike-sprite-name)
-          .srcPosition (Vector2 x y)
-          .srcSize (Vector2 width height)))
+(defn foundation
+  ([] (foundation {:i 0}))
+  ([{:keys [i]}]
+   {:kind :foundation
+    :component (doto (PositionComponent)
+                 (-> .-size (set! card-size))
+                 (-> .-position (set! (Vector2 (+ (* (+ i 3)
+                                                     (+ card-width card-gap))
+                                                  card-gap) card-gap)))
+                 (-> .-debugMode (set! debug-mode?)))}))
 
-(deftype KlondikeGame []
+(defn pile
+  ([] (pile {:i 0}))
+  ([{:keys [i]}]
+   {:kind :pile
+    :component (doto (PositionComponent)
+                 (-> .-size (set! card-size))
+                 (-> .-position (set! (Vector2 (+ card-gap
+                                                  (* i
+                                                     (+ card-width card-gap)))
+                                               (+ card-height
+                                                  (* 2 card-gap)))))
+                 (-> .-debugMode (set! debug-mode?)))}))
+
+(defn waste
+  ([] (waste {}))
+  ([_]
+   {:kind :waste
+    :component (doto (PositionComponent)
+                 (-> .-size (set! card-size))
+                 (-> .-position (set! (Vector2 (+ card-width
+                                                  (* card-gap 2))
+                                               card-gap)))
+                 (-> .-debugMode (set! debug-mode?)))}))
+
+(defn world
+  ([] (world {}))
+  ([_]
+   {:kind :world
+    :component (World)}))
+
+(defn camera
+  [{:keys [world]}]
+  {:kind :camera
+   :component (doto (CameraComponent .world (c world))
+                (-> .-viewfinder .-visibleGameSize (set! (Vector2 (+ (* card-width 7)
+                                                                     (* card-gap 8))
+                                                                  (+ (* 4 card-height)
+                                                                     (* 3 card-gap)))))
+                (-> .-viewfinder .-position (set! (Vector2 (+ (* card-width 3.5)
+                                                              (* card-gap 4))
+                                                           0)))
+                (-> .-viewfinder .-anchor (set! Anchor/topCenter)))})
+
+(deftype KlondikeGame [db]
   :extends game/FlameGame
   (^:async onLoad [this]
     (await (.load (. flame/Flame images) klondike-sprite-name))
-    (let [stock (doto (Stock)
-                  (-> .-size (set! card-size))
-                  (-> .-position (set! (Vector2 card-gap card-gap))))
-          waste (doto (Waste)
-                  (-> .-size (set! card-size))
-                  (-> .-position (set! (Vector2 (+ card-width
-                                                   (* card-gap 2))
-                                                card-gap))))
-          foundations (mapv #(doto (Foundation)
-                               (-> .-size (set! card-size))
-                               (-> .-position (set! (Vector2 (+ (* (+ % 3)
-                                                                   (+ card-width card-gap))
-                                                                card-gap) card-gap))))
-                            (range 5))
-          piles (mapv #(doto (Pile)
-                         (-> .-size (set! card-size))
-                         (-> .-position (set! (Vector2 (+ card-gap
-                                                          (* %
-                                                             (+ card-width card-gap)))
-                                                       (+ card-height
-                                                          (* 2 card-gap))))))
-                      (range 8))
-          world (World)
-          camera (doto (CameraComponent .world world)
-                   (-> .-viewfinder .-visibleGameSize (set! (Vector2 (+ (* card-width 7)
-                                                                        (* card-gap 8))
-                                                                     (+ (* 4 card-height)
-                                                                        (* 3 card-gap)))))
-                   (-> .-viewfinder .-position (set! (Vector2 (+ (* card-width 3.5)
-                                                                 (* card-gap 4))
-                                                              0)))
-                   (-> .-viewfinder .-anchor (set! Anchor/topCenter)))]
-      (await (.addAll world (concat [stock waste] foundations piles)))
-      (await (.addAll this [world camera])))
+    (let [stock (stock)
+          waste (waste)
+          foundations (mapv #(foundation {:i %}) (range 5))
+          piles (mapv #(pile {:i %}) (range 8))
+          cards (cards {})
+          world (world)
+          camera (camera {:world world})
+          components (concat (cs [stock waste])
+                             (cs foundations)
+                             (cs piles))]
+      (await (.addAll ^World (c world) components))
+      (await (.addAll this (cs [world camera]))))
     nil))
 
 (defn main []
   (fw/WidgetsFlutterBinding.ensureInitialized)
-  (let [game (KlondikeGame)] 
+  (prn "hello")
+  (let [game (KlondikeGame db)]
     (m/runApp (game/GameWidget .game game))))
