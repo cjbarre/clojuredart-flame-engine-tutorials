@@ -10,13 +10,19 @@
             ["dart:ui" :refer [Color Paint PaintingStyle ColorFilter BlendMode RRect Radius Canvas Rect]]
             [cljd.flutter.alpha2 :refer [widget run]]))
 
-(defn c [component] (:component component))
+(defn c 
+  [component] 
+  (:component component))
 
-(defn cs [components] (mapv :component components))
+(defn cs 
+  [components] 
+  (mapv :component components))
 
-(defonce db (atom {:id 0}))
+(defonce db 
+  (atom {:id 0}))
 
-(def debug-mode? true)
+(def debug-mode? 
+  true)
 
 (defn id
   [db]
@@ -24,7 +30,8 @@
     (swap! db update :id inc)
     id))
 
-(def klondike-sprite-name "klondike-sprites.png")
+(def klondike-sprite-name 
+  "klondike-sprites.png")
 
 (defn klondike-sprite
   [{:keys [^double x ^double y ^double w ^double h]}]
