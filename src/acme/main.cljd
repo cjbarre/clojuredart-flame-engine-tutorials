@@ -7,6 +7,7 @@
             ["package:flame/components.dart" :as components :refer [PositionComponent Anchor Sprite Component]]
             ["package:flame/input.dart" :as input :refer [Vector2]]
             ["dart:developer" :as dev]
+            ["dart:ui" :refer [Color Paint PaintingStyle ColorFilter BlendMode RRect Radius Canvas Rect]]
             [cljd.flutter.alpha2 :refer [widget run]]))
 
 (defn c [component] (:component component))
@@ -26,10 +27,10 @@
 (def klondike-sprite-name "klondike-sprites.png")
 
 (defn klondike-sprite
-  [{:keys [^double x ^double y ^double width ^double height]}]
+  [{:keys [^double x ^double y ^double w ^double h]}]
   (Sprite (.fromCache (. flame/Flame images) klondike-sprite-name)
           .srcPosition (Vector2 x y)
-          .srcSize (Vector2 width height)))
+          .srcSize (Vector2 w h)))
 
 ;;;;;;;;;;;;;;
 ;;;; Suits ;;;
@@ -88,15 +89,107 @@
   [card]
   (update card :face-up? not))
 
+(def front-background-paint
+  (doto (Paint)
+        (-> .-color (set! (Color 0xff000000)))))
+
+(def back-background-paint
+  (doto (Paint)
+    (-> .-color (set! (Color 0xff380c02)))))
+
+(def back-border-paint-1
+  (doto (Paint)
+    (-> .-color (set! (Color 0xffdbaf58)))
+    (-> .-style PaintingStyle/stroke)
+    (-> .-strokeWidth (set! 10))))
+
+(def back-border-paint-2
+  (doto (Paint)
+    (-> .-color (set! (Color 0x5CEF971B)))
+    (-> .-style PaintingStyle/stroke)
+    (-> .-strokeWidth (set! 35))))
+
+(def card-rrect
+  (RRect.fromRectAndRadius
+   (Rect.fromLTWH 0.0 0.0 (.-x ^Vector2 card-size) (.-y ^Vector2 card-size))
+   (Radius.circular card-radius)))
+
+(def back-rrect-inner 
+  (.deflate ^RRect card-rrect 40.0))
+
+(def flame-sprite 
+  (klondike-sprite {:x 1367 :y 6 :w 357 :h 501}))
+
+(def red-border-paint
+  (doto (Paint)
+        (-> .-color (set! (Color 0xffece8a3)))
+        (-> .-style PaintingStyle/stroke)
+        (-> .-strokeWidth (set! 10))))
+
+(def black-border-paint
+  (doto (Paint)
+    (-> .-color (set! (Color 0xff7ab2e8)))
+    (-> .-style PaintingStyle/stroke)
+    (-> .-strokeWidth (set! 10))))
+
+(def red-jack 
+  (klondike-sprite {:x 81 :y 565 :w 562 :h 488}))
+
+(def red-queen
+  (klondike-sprite {:x 717 :y 541 :w 486 :h 515}))
+
+(def red-king
+  (klondike-sprite {:x 1305 :y 532 :w 407 :h 549}))
+
+(def blue-filter
+  (doto (Paint)
+        (-> .-colorFilter (set! (ColorFilter.mode (Color 0x880d8bff) BlendMode/srcATop)))))
+
+(def black-jack
+  (doto (klondike-sprite {:x 81 :y 565 :w 562 :h 488})
+        (-> .-paint (set! blue-filter))))
+
+(def black-queen
+  (doto (klondike-sprite {:x 717 :y 541 :w 486 :h 515})
+        (-> .-paint (set! blue-filter))))
+
+(def black-king
+  (doto (klondike-sprite {:x 1305 :y 532 :w 407 :h 549})
+        (-> .-paint (set! blue-filter))))
+
+(defn render-front [canvas])
+
+(defn render-back 
+  [^Canvas canvas]
+  (.drawRRect canvas card-rrect back-background-paint)
+  (.drawRRect canvas card-rrect back-border-paint-1)
+  (.drawRRect canvas back-rrect-inner back-border-paint-2)
+  (.render ^Sprite flame-sprite canvas .position (. ^Vector2 card-size "/" 2.0) .anchor Anchor/center))
+
 (defn card
   [{:keys [rank suit face-up?]}]
   {:kind :card
-   :component (doto (reify PositionComponent
-                      (toString [_] (str (:label rank) (:label suit))))
-                (-> .-size (set! card-size)))})
+   :face-up? face-up?
+   :component (let [component (reify :extends PositionComponent
+                                (render
+                                 [_ canvas]
+                                 (if face-up?
+                                   (render-front canvas)
+                                   (render-back canvas)))
+                                (toString
+                                 [_]
+                                 (str (:label rank) (:label suit))))]
+                (doto component
+                 (-> .-size (set! card-size))))})
 
 (defn cards
-  [{:keys [_]}])
+  [{:keys [columns rows]}]
+  (for [i (range columns)
+        j (range rows)]
+    (let [card (card {:rank (get ranks 1) :suit (get suits 0) :face-up? false})]
+      (doto (c card)
+        (-> .-position (set! (Vector2 (+ 100 (* i 1150)) (+ 100 (* j 1500))))))
+      card)))
 
 ;;;;;;;;;;;;;;;
 ;;;; Board ;;;;
@@ -173,12 +266,14 @@
           waste (waste)
           foundations (mapv #(foundation {:i %}) (range 5))
           piles (mapv #(pile {:i %}) (range 8))
-          cards (cards {})
+          cards (cards {:columns 7 :rows 4})
+          _ (prn (str (count cards)))
           world (world)
           camera (camera {:world world})
           components (concat (cs [stock waste])
                              (cs foundations)
-                             (cs piles))]
+                             (cs piles)
+                             (cs cards))]
       (await (.addAll ^World (c world) components))
       (await (.addAll this (cs [world camera]))))
     nil))
