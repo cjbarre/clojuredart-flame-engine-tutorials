@@ -107,13 +107,13 @@
 (def back-border-paint-1
   (doto (Paint)
     (-> .-color (set! (Color 0xffdbaf58)))
-    (-> .-style PaintingStyle/stroke)
+    (-> .-style (set! PaintingStyle/stroke))
     (-> .-strokeWidth (set! 10))))
 
 (def back-border-paint-2
   (doto (Paint)
     (-> .-color (set! (Color 0x5CEF971B)))
-    (-> .-style PaintingStyle/stroke)
+    (-> .-style (set! PaintingStyle/stroke))
     (-> .-strokeWidth (set! 35))))
 
 (def card-rrect
@@ -130,14 +130,14 @@
 (def red-border-paint
   (doto (Paint)
         (-> .-color (set! (Color 0xffece8a3)))
-        (-> .-style PaintingStyle/stroke)
-        (-> .-strokeWidth (set! 10))))
+        (-> .-style (set! PaintingStyle/stroke))
+        (-> .-strokeWidth (set! 1.0))))
 
 (def black-border-paint
   (doto (Paint)
     (-> .-color (set! (Color 0xff7ab2e8)))
-    (-> .-style PaintingStyle/stroke)
-    (-> .-strokeWidth (set! 10))))
+    (-> .-style (set! PaintingStyle/stroke))
+    (-> .-strokeWidth (set! 10.0))))
 
 (def red-jack 
   (klondike-sprite {:x 81 :y 565 :w 562 :h 488}))
@@ -164,15 +164,42 @@
   (doto (klondike-sprite {:x 1305 :y 532 :w 407 :h 549})
         (-> .-paint (set! blue-filter))))
 
+
+(defn draw-sprite
+  [^Canvas canvas
+   ^Sprite sprite
+   relative-x
+   relative-y
+   {:keys [scale rotate?]
+    :or {scale 1.0 rotate? false}}]
+  (when rotate?
+    (.save canvas)
+    (.translate canvas (/ (.-x card-size) 2.0) (/ (.-y card-size) 2.0))
+    (.rotate canvas 3.14)
+    (.translate canvas (/ (* -1.0 (.-x card-size)) 2.0) (/ (* -1.0 (.-y card-size)) 2.0)))
+  (.render sprite
+           canvas
+           .position (Vector2 (* relative-x (.-x card-size)) (* relative-y (.-y card-size)))
+           .anchor Anchor/center
+           .size (.scaled (.-srcSize sprite) scale))
+  (when rotate?
+    (.restore canvas)))
+
 (defn render-front
   [^Canvas canvas card]
-  (.drawRRect canvas card-rrect front-background-paint)
-  (.drawRRect canvas card-rrect (if (= :red (-> card :suit :color))
-                                  red-border-paint
-                                  black-border-paint)))
+  (let [rank-sprite (klondike-sprite {:x 335 :y 164 :w 120 :h 129})
+        suit-sprite (klondike-sprite {:x 1176 :y 17 :w 172 :h 183})]
+    (.drawRRect canvas card-rrect front-background-paint)
+    (.drawRRect canvas card-rrect (if (= :red (-> card :suit :color))
+                                    red-border-paint
+                                    black-border-paint))
+    (draw-sprite canvas rank-sprite 0.1 0.08 {})
+    (draw-sprite canvas rank-sprite 0.1 0.08 {:rotate? true})
+    (draw-sprite canvas suit-sprite 0.1 0.18 {:scale 0.5})
+    (draw-sprite canvas suit-sprite 0.1 0.18 {:rotate? true :scale 0.5})))
 
-(defn render-back 
-  [^Canvas canvas _]
+(defn render-back
+  [^Canvas canvas {:keys [rank suit]}]
   (.drawRRect canvas card-rrect back-background-paint)
   (.drawRRect canvas card-rrect back-border-paint-1)
   (.drawRRect canvas back-rrect-inner back-border-paint-2)
