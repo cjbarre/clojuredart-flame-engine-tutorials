@@ -164,10 +164,15 @@
   (doto (klondike-sprite {:x 1305 :y 532 :w 407 :h 549})
         (-> .-paint (set! blue-filter))))
 
-(defn render-front [canvas])
+(defn render-front
+  [^Canvas canvas card]
+  (.drawRRect canvas card-rrect front-background-paint)
+  (.drawRRect canvas card-rrect (if (= :red (-> card :suit :color))
+                                  red-border-paint
+                                  black-border-paint)))
 
 (defn render-back 
-  [^Canvas canvas]
+  [^Canvas canvas _]
   (.drawRRect canvas card-rrect back-background-paint)
   (.drawRRect canvas card-rrect back-border-paint-1)
   (.drawRRect canvas back-rrect-inner back-border-paint-2)
@@ -175,25 +180,30 @@
 
 (defn card
   [{:keys [rank suit face-up?]}]
-  {:kind :card
-   :face-up? face-up?
-   :component (let [component (reify :extends PositionComponent
-                                (render
-                                 [_ canvas]
-                                 (if face-up?
-                                   (render-front canvas)
-                                   (render-back canvas)))
-                                (toString
-                                 [_]
-                                 (str (:label rank) (:label suit))))]
-                (doto component
-                 (-> .-size (set! card-size))))})
+  (let [new-card {:kind :card
+                  :face-up? face-up?
+                  :rank rank
+                  :suit suit}]
+    (assoc new-card
+           :component
+           (let [component (reify :extends PositionComponent
+                             (render
+                               [_ canvas]
+                               (if face-up?
+                                 (render-front canvas new-card)
+                                 (render-back canvas new-card)))
+                             (toString
+                               [_]
+                               (str (:label rank) (:label suit))))]
+             (doto component
+               (-> .-size (set! card-size)))
+             component))))
 
 (defn cards
   [{:keys [columns rows]}]
   (for [i (range columns)
         j (range rows)]
-    (let [card (card {:rank (get ranks 1) :suit (get suits 0) :face-up? false})]
+    (let [card (card {:rank (get ranks 1) :suit (get suits 0) :face-up? true})]
       (doto (c card)
         (-> .-position (set! (Vector2 (+ 100 (* i 1150)) (+ 100 (* j 1500))))))
       card)))
