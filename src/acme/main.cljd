@@ -174,12 +174,12 @@
     :or {scale 1.0 rotate? false}}]
   (when rotate?
     (.save canvas)
-    (.translate canvas (/ (.-x card-size) 2.0) (/ (.-y card-size) 2.0))
+    (.translate canvas (/ (.-x ^Vector2 card-size) 2.0) (/ (.-y ^Vector2 card-size) 2.0))
     (.rotate canvas 3.14)
-    (.translate canvas (/ (* -1.0 (.-x card-size)) 2.0) (/ (* -1.0 (.-y card-size)) 2.0)))
+    (.translate canvas (/ (* -1.0 (.-x ^Vector2 card-size)) 2.0) (/ (* -1.0 (.-y ^Vector2 card-size)) 2.0)))
   (.render sprite
            canvas
-           .position (Vector2 (* relative-x (.-x card-size)) (* relative-y (.-y card-size)))
+           .position (Vector2 (* relative-x (.-x ^Vector2 card-size)) (* relative-y (.-y ^Vector2 card-size)))
            .anchor Anchor/center
            .size (.scaled (.-srcSize sprite) scale))
   (when rotate?
