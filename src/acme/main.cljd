@@ -10,18 +10,11 @@
             ["dart:ui" :refer [Color Paint PaintingStyle ColorFilter BlendMode RRect Radius Canvas Rect]]
             [cljd.flutter.alpha2 :refer [widget run]]))
 
-(defn c 
-  [component] 
-  (:component component))
 
-(defn cs 
-  [components] 
-  (mapv :component components))
-
-(defonce db 
+(defonce db
   (atom {:id 0}))
 
-(def debug-mode? 
+(def debug-mode?
   true)
 
 (defn id
@@ -30,7 +23,7 @@
     (swap! db update :id inc)
     id))
 
-(def klondike-sprite-name 
+(def klondike-sprite-name
   "klondike-sprites.png")
 
 (defn klondike-sprite
@@ -98,7 +91,7 @@
 
 (def front-background-paint
   (doto (Paint)
-        (-> .-color (set! (Color 0xff000000)))))
+    (-> .-color (set! (Color 0xff000000)))))
 
 (def back-background-paint
   (doto (Paint)
@@ -121,17 +114,17 @@
    (Rect.fromLTWH 0.0 0.0 (.-x ^Vector2 card-size) (.-y ^Vector2 card-size))
    (Radius.circular card-radius)))
 
-(def back-rrect-inner 
+(def back-rrect-inner
   (.deflate ^RRect card-rrect 40.0))
 
-(def flame-sprite 
+(def flame-sprite
   (klondike-sprite {:x 1367 :y 6 :w 357 :h 501}))
 
 (def red-border-paint
   (doto (Paint)
-        (-> .-color (set! (Color 0xffece8a3)))
-        (-> .-style (set! PaintingStyle/stroke))
-        (-> .-strokeWidth (set! 1.0))))
+    (-> .-color (set! (Color 0xffece8a3)))
+    (-> .-style (set! PaintingStyle/stroke))
+    (-> .-strokeWidth (set! 1.0))))
 
 (def black-border-paint
   (doto (Paint)
@@ -139,7 +132,7 @@
     (-> .-style (set! PaintingStyle/stroke))
     (-> .-strokeWidth (set! 10.0))))
 
-(def red-jack 
+(def red-jack
   (klondike-sprite {:x 81 :y 565 :w 562 :h 488}))
 
 (def red-queen
@@ -150,19 +143,19 @@
 
 (def blue-filter
   (doto (Paint)
-        (-> .-colorFilter (set! (ColorFilter.mode (Color 0x880d8bff) BlendMode/srcATop)))))
+    (-> .-colorFilter (set! (ColorFilter.mode (Color 0x880d8bff) BlendMode/srcATop)))))
 
 (def black-jack
   (doto (klondike-sprite {:x 81 :y 565 :w 562 :h 488})
-        (-> .-paint (set! blue-filter))))
+    (-> .-paint (set! blue-filter))))
 
 (def black-queen
   (doto (klondike-sprite {:x 717 :y 541 :w 486 :h 515})
-        (-> .-paint (set! blue-filter))))
+    (-> .-paint (set! blue-filter))))
 
 (def black-king
   (doto (klondike-sprite {:x 1305 :y 532 :w 407 :h 549})
-        (-> .-paint (set! blue-filter))))
+    (-> .-paint (set! blue-filter))))
 
 
 (defn draw-sprite
@@ -205,33 +198,29 @@
   (.drawRRect canvas back-rrect-inner back-border-paint-2)
   (.render ^Sprite flame-sprite canvas .position (. ^Vector2 card-size "/" 2.0) .anchor Anchor/center))
 
-(defn card
-  [{:keys [rank suit face-up?]}]
-  (let [new-card {:kind :card
-                  :face-up? face-up?
-                  :rank rank
-                  :suit suit}]
-    (assoc new-card
-           :component
-           (let [component (reify :extends PositionComponent
-                             (render
-                               [_ canvas]
-                               (if face-up?
-                                 (render-front canvas new-card)
-                                 (render-back canvas new-card)))
-                             (toString
-                               [_]
-                               (str (:label rank) (:label suit))))]
-             (doto component
-               (-> .-size (set! card-size)))
-             component))))
+(deftype ^:type-only Card [data]
+  :extends (PositionComponent)
+  (render
+    [this canvas]
+    (if (-> this .-data :face-up?)
+      (render-front canvas (.-data this))
+      (render-back canvas (.-data this))))
+  (toString
+    [this]
+    (str (-> this .-data :rank :label)
+         (-> this .-data :suit :label))))
+
+(defn ->Card [{:keys [face-up? rank suit] :as args}]
+  (let [card (Card args)
+        _ (doto card (-> .-size (set! card-size)))]
+    card))
 
 (defn cards
   [{:keys [columns rows]}]
   (for [i (range columns)
         j (range rows)]
-    (let [card (card {:rank (get ranks 1) :suit (get suits 0) :face-up? true})]
-      (doto (c card)
+    (let [card (->Card {:rank (get ranks 1) :suit (get suits 0) :face-up? true})]
+      (doto card
         (-> .-position (set! (Vector2 (+ 100 (* i 1150)) (+ 100 (* j 1500))))))
       card)))
 
@@ -239,87 +228,91 @@
 ;;;; Board ;;;;
 ;;;;;;;;;;;;;;;
 
-(defn stock
-  ([] (stock {}))
-  ([_]
-   {:kind :stock
-    :component (doto (PositionComponent)
-                 (-> .-size (set! card-size))
-                 (-> .-position (set! (Vector2 card-gap card-gap)))
-                 (-> .-debugMode (set! debug-mode?)))}))
+(deftype ^:type-only Stock [data]
+  :extends (PositionComponent))
 
-(defn foundation
-  ([] (foundation {:i 0}))
-  ([{:keys [i]}]
-   {:kind :foundation
-    :component (doto (PositionComponent)
-                 (-> .-size (set! card-size))
-                 (-> .-position (set! (Vector2 (+ (* (+ i 3)
-                                                     (+ card-width card-gap))
-                                                  card-gap) card-gap)))
-                 (-> .-debugMode (set! debug-mode?)))}))
+(defn ->Stock
+  ([] (->Stock {}))
+  ([args]
+   (doto (Stock args)
+     (-> .-size (set! card-size))
+     (-> .-position (set! (Vector2 card-gap card-gap)))
+     (-> .-debugMode (set! debug-mode?)))))
 
-(defn pile
-  ([] (pile {:i 0}))
-  ([{:keys [i]}]
-   {:kind :pile
-    :component (doto (PositionComponent)
-                 (-> .-size (set! card-size))
-                 (-> .-position (set! (Vector2 (+ card-gap
-                                                  (* i
-                                                     (+ card-width card-gap)))
-                                               (+ card-height
-                                                  (* 2 card-gap)))))
-                 (-> .-debugMode (set! debug-mode?)))}))
+(deftype ^:type-only Foundation [data]
+  :extends (PositionComponent))
 
-(defn waste
-  ([] (waste {}))
-  ([_]
-   {:kind :waste
-    :component (doto (PositionComponent)
-                 (-> .-size (set! card-size))
-                 (-> .-position (set! (Vector2 (+ card-width
-                                                  (* card-gap 2))
-                                               card-gap)))
-                 (-> .-debugMode (set! debug-mode?)))}))
+(defn ->Foundation
+  ([] (->Foundation {:i 0}))
+  ([{:keys [i] :as args}]
+   (doto (Foundation args)
+     (-> .-size (set! card-size))
+     (-> .-position (set! (Vector2 (+ (* (+ i 3)
+                                         (+ card-width card-gap))
+                                      card-gap) card-gap)))
+     (-> .-debugMode (set! debug-mode?)))))
 
-(defn world
-  ([] (world {}))
-  ([_]
-   {:kind :world
-    :component (World)}))
+(deftype ^:type-only Pile [data]
+  :extends (PositionComponent))
 
-(defn camera
-  [{:keys [world]}]
-  {:kind :camera
-   :component (doto (CameraComponent .world (c world))
-                (-> .-viewfinder .-visibleGameSize (set! (Vector2 (+ (* card-width 7)
-                                                                     (* card-gap 8))
-                                                                  (+ (* 4 card-height)
-                                                                     (* 3 card-gap)))))
-                (-> .-viewfinder .-position (set! (Vector2 (+ (* card-width 3.5)
-                                                              (* card-gap 4))
-                                                           0)))
-                (-> .-viewfinder .-anchor (set! Anchor/topCenter)))})
+(defn ->Pile
+  ([] (->Pile {:i 0}))
+  ([{:keys [i] :as args}]
+   (doto (Pile args)
+     (-> .-size (set! card-size))
+     (-> .-position (set! (Vector2 (+ card-gap
+                                      (* i
+                                         (+ card-width card-gap)))
+                                   (+ card-height
+                                      (* 2 card-gap)))))
+     (-> .-debugMode (set! debug-mode?)))))
+
+(deftype ^:type-only Waste [data]
+  :extends (PositionComponent))
+
+(defn ->Waste
+  ([] (->Waste {}))
+  ([args]
+   (doto (Waste args)
+     (-> .-size (set! card-size))
+     (-> .-position (set! (Vector2 (+ card-width
+                                      (* card-gap 2))
+                                   card-gap)))
+     (-> .-debugMode (set! debug-mode?)))))
+
+(deftype ^:type-only Camera [data]
+  :extends (CameraComponent .world (:world data)))
+
+(defn ->Camera
+  [{:keys [world] :as args}]
+  (doto (Camera args)
+    (-> .-viewfinder .-visibleGameSize (set! (Vector2 (+ (* card-width 7)
+                                                         (* card-gap 8))
+                                                      (+ (* 4 card-height)
+                                                         (* 3 card-gap)))))
+    (-> .-viewfinder .-position (set! (Vector2 (+ (* card-width 3.5)
+                                                  (* card-gap 4))
+                                               0)))
+    (-> .-viewfinder .-anchor (set! Anchor/topCenter))))
 
 (deftype KlondikeGame [db]
   :extends game/FlameGame
   (^:async onLoad [this]
     (await (.load (. flame/Flame images) klondike-sprite-name))
-    (let [stock (stock)
-          waste (waste)
-          foundations (mapv #(foundation {:i %}) (range 5))
-          piles (mapv #(pile {:i %}) (range 8))
+    (let [stock (->Stock)
+          waste (->Waste)
+          foundations (mapv #(->Foundation {:i %}) (range 5))
+          piles (mapv #(->Pile {:i %}) (range 8))
           cards (cards {:columns 7 :rows 4})
           _ (prn (str (count cards)))
-          world (world)
-          camera (camera {:world world})
-          components (concat (cs [stock waste])
-                             (cs foundations)
-                             (cs piles)
-                             (cs cards))]
-      (await (.addAll ^World (c world) components))
-      (await (.addAll this (cs [world camera]))))
+          world (World)
+          camera (->Camera {:world world})
+          components (concat [stock waste]
+                             foundations
+                             piles
+                             cards)]
+      (await (.addAll ^World world components))
+      (await (.addAll this [world camera])))
     nil))
 
 (defn main []
