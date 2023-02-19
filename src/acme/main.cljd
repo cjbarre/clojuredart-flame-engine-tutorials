@@ -15,7 +15,7 @@
   (atom {:id 0}))
 
 (def debug-mode?
-  true)
+  false)
 
 (defn id
   [db]
@@ -43,11 +43,11 @@
    :color color
    :sprite (klondike-sprite sprite-coord)})
 
-(defonce suits
+(defn suits []
   {0 (suit 0 "♥" :red {:x 1176 :y 17 :w 172 :h 183})
-   1 (suit 1 "♦" :red {:x 1176 :y 17 :w 172 :h 183})
-   2 (suit 2 "♣" :black {:x 1176 :y 17 :w 172 :h 183})
-   3 (suit 3 "♠" :black {:x 1176 :y 17 :w 172 :h 183})})
+   1 (suit 1 "♦" :red {:x 973 :y 14 :w 177 :h 182})
+   2 (suit 2 "♣" :black {:x 974 :y 226 :w 184 :h 172})
+   3 (suit 3 "♠" :black {:x 1178 :y 220 :w 176 :h 182})})
 
 ;;;;;;;;;;;;;;
 ;;;; Ranks ;;;
@@ -60,7 +60,7 @@
    :red-sprite (klondike-sprite red-sprite-coord)
    :black-sprite (klondike-sprite black-sprite-coord)})
 
-(defonce ranks
+(defn ranks []
   {1 (rank 1 "A" {:x 335 :y 164 :w 120 :h 129} {:x 789 :y 161 :w 120 :h 129})
    2 (rank 2 "2" {:x 20 :y 19 :w 83 :h 125} {:x 15 :y 322 :w 83 :h 125})
    3 (rank 3 "3" {:x 122 :y 19 :w 80 :h 127} {:x 117 :y 322 :w 80 :h 127})
@@ -180,8 +180,10 @@
 
 (defn render-front
   [^Canvas canvas card]
-  (let [rank-sprite (klondike-sprite {:x 335 :y 164 :w 120 :h 129})
-        suit-sprite (klondike-sprite {:x 1176 :y 17 :w 172 :h 183})]
+  (let [rank-sprite (if (= :red (-> card :suit :color))
+                      (-> card :rank :red-sprite)
+                      (-> card :rank :black-sprite))
+        suit-sprite (-> card :suit :sprite)]
     (.drawRRect canvas card-rrect front-background-paint)
     (.drawRRect canvas card-rrect (if (= :red (-> card :suit :color))
                                     red-border-paint
@@ -216,10 +218,10 @@
     card))
 
 (defn cards
-  [{:keys [columns rows]}]
+  [{:keys [ranks suits columns rows]}]
   (for [i (range columns)
         j (range rows)]
-    (let [card (->Card {:rank (get ranks 1) :suit (get suits 0) :face-up? true})]
+    (let [card (->Card {:rank (get ranks (inc (rand-int 13))) :suit (get suits (rand-int 4)) :face-up? true})]
       (doto card
         (-> .-position (set! (Vector2 (+ 100 (* i 1150)) (+ 100 (* j 1500))))))
       card)))
@@ -298,12 +300,15 @@
 (deftype KlondikeGame [db]
   :extends game/FlameGame
   (^:async onLoad [this]
-    (await (.load (. flame/Flame images) klondike-sprite-name))
-    (let [stock (->Stock)
+    
+    (let [_ (await (.load (. flame/Flame images) klondike-sprite-name))
+          _ (swap! db assoc :ranks (ranks))
+          _ (swap! db assoc :suits (suits))
+          stock (->Stock)
           waste (->Waste)
           foundations (mapv #(->Foundation {:i %}) (range 5))
           piles (mapv #(->Pile {:i %}) (range 8))
-          cards (cards {:columns 7 :rows 4})
+          cards (cards {:ranks (:ranks @db) :suits (:suits @db) :columns 7 :rows 4})
           _ (prn (str (count cards)))
           world (World)
           camera (->Camera {:world world})
