@@ -290,17 +290,35 @@
         (-> .-position (set! (Vector2 (+ 100 (* i 1150)) (+ 100 (* j 1500))))))
       card)))
 
+(defn cards2 [{:keys [ranks suits columns rows]}]
+  (for [rank (range 1 14)
+        suit (range 0 4)]
+    (->Card {:face-up? false :rank (get ranks rank) :suit (get suits suit)})))
+
 ;;;;;;;;;;;;;;;
 ;;;; Board ;;;;
 ;;;;;;;;;;;;;;;
 
-(deftype ^:type-only Stock [data]
-  :extends (PositionComponent))
+(defprotocol IPile
+  (acquire-card [this card]))
 
-(defn ->Stock
-  ([] (->Stock {}))
-  ([args]
-   (doto (Stock args)
+(deftype ^:type-only StockPile [data]
+  :extends (PositionComponent)
+  IPile
+  (acquire-card
+    [this ^Card card]
+    (assert (not (-> card .-data :face-up?)))
+    (let [data (.-data this)]
+      (doto card
+        (-> .-position (set! (.-position this)))
+        (-> .-priority (set! (count (:cards data)))))
+      (set! (.-data this) (update data :cards conj card))))
+  (^:setter data [this data]))
+
+(defn ->StockPile
+  ([] (->StockPile {:cards []}))
+  ([{:keys [cards] :as data}]
+   (doto (StockPile data)
      (-> .-size (set! card-size))
      (-> .-position (set! (Vector2 card-gap card-gap)))
      (-> .-debugMode (set! debug-mode?)))))
@@ -364,19 +382,21 @@
 (deftype KlondikeGame [db]
   :extends game/FlameGame
   (^:async onLoad [this]
-    
+
     (let [_ (await (.load (. flame/Flame images) klondike-sprite-name))
           _ (swap! db assoc :ranks (ranks))
           _ (swap! db assoc :suits (suits))
-          stock (->Stock)
+          stock-pile (->StockPile)
           waste (->Waste)
           foundations (mapv #(->Foundation {:i %}) (range 5))
           piles (mapv #(->Pile {:i %}) (range 8))
-          cards (cards {:ranks (:ranks @db) :suits (:suits @db) :columns 7 :rows 4})
+          #_#_cards (cards {:ranks (:ranks @db) :suits (:suits @db) :columns 7 :rows 4})
+          cards (cards2 {:ranks (:ranks @db) :suits (:suits @db)})
+          _ (doseq [card cards] (acquire-card stock-pile card))
           _ (prn (str (count cards)))
           world (World)
           camera (->Camera {:world world})
-          components (concat [stock waste]
+          components (concat [stock-pile waste]
                              foundations
                              piles
                              cards)]
