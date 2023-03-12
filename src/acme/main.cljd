@@ -423,7 +423,7 @@
           foundations (mapv #(->Foundation {:i %}) (range 5))
           piles (mapv #(->Pile {:i %}) (range 8))
           #_#_cards (cards {:ranks (:ranks @db) :suits (:suits @db) :columns 7 :rows 4})
-          cards (cards2 {:ranks (:ranks @db) :suits (:suits @db)})
+          cards (shuffle (cards2 {:ranks (:ranks @db) :suits (:suits @db)}))
           _ (doseq [card cards] (acquire-card stock-pile card))
           _ (prn (str (count cards)))
           world (World)
