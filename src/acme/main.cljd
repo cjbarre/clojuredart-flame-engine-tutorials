@@ -3,7 +3,8 @@
             ["package:flutter/widgets.dart" :as fw]
             ["package:flame/flame.dart" :as flame]
             ["package:flame/game.dart" :as game]
-            ["package:flame/experimental.dart" :refer [World CameraComponent HasTappableComponents TapCallbacks]]
+            ["package:flame/camera.dart" :as camera :refer [World CameraComponent]]
+            ["package:flame/events.dart" :as events :refer [TapCallbacks]] 
             ["package:flame/components.dart" :as components :refer [PositionComponent Anchor Sprite Component]]
             ["package:flame/input.dart" :as input :refer [Vector2]]
             ["dart:developer" :as dev]
@@ -399,22 +400,21 @@
 (deftype ^:type-only Camera [data]
   :extends (CameraComponent .world (:world data)))
 
-(defn ->Camera
-  [{:keys [world] :as args}]
-  (doto (Camera args)
-    (-> .-viewfinder .-visibleGameSize (set! (Vector2 (+ (* card-width 7)
-                                                         (* card-gap 8))
-                                                      (+ (* 4 card-height)
-                                                         (* 3 card-gap)))))
+(defn setup-camera [^CameraComponent camera]
+  (doto camera
+    (-> .-viewfinder .-visibleGameSize (set! (Vector2 2000.0 2000.0)
+                                             #_(Vector2 (+ (* card-width 7)
+                                                           (* card-gap 8))
+                                                        (+ (* 4 card-height)
+                                                           (* 3 card-gap)))))
     (-> .-viewfinder .-position (set! (Vector2 (+ (* card-width 3.5)
                                                   (* card-gap 4))
                                                0)))
     (-> .-viewfinder .-anchor (set! Anchor/topCenter))))
 
 (deftype KlondikeGame [db]
-  :extends game/FlameGame ^:mixin HasTappableComponents
+  :extends game/FlameGame
   (^:async onLoad [this]
-
     (let [_ (await (.load (. flame/Flame images) klondike-sprite-name))
           _ (swap! db assoc :ranks (ranks))
           _ (swap! db assoc :suits (suits))
@@ -425,19 +425,27 @@
           #_#_cards (cards {:ranks (:ranks @db) :suits (:suits @db) :columns 7 :rows 4})
           cards (shuffle (cards2 {:ranks (:ranks @db) :suits (:suits @db)}))
           _ (doseq [card cards] (acquire-card stock-pile card))
-          _ (prn (str (count cards)))
           world (World)
           camera (->Camera {:world world})
           components (concat [stock-pile waste-pile]
                              foundations
                              piles
-                             cards)]
-      (await (.addAll ^World world components))
-      (await (.addAll this [world camera])))
+                             cards)
+          _ (await (.addAll ^World world components))
+          _ (await (.addAll this [world camera])) 
+          ;; Camera has to be set up when using visibleGameSize 
+          ;; after the camera has been mounted per the following 
+          ;; github issue. Used to work differently in an older version 
+          ;; of Flame. https://github.com/flame-engine/flame/pull/2452
+          _ (setup-camera camera)]
+      (doto camera
+        (-> .-viewfinder .-visibleGameSize (set! (Vector2 (+ (* card-width 7)
+                                                             (* card-gap 8))
+                                                          (+ (* 4 card-height)
+                                                             (* 3 card-gap)))))))
     nil))
 
 (defn main []
   (fw/WidgetsFlutterBinding.ensureInitialized)
-  (prn "hello")
   (let [game (KlondikeGame db)]
     (m/runApp (game/GameWidget .game game))))
