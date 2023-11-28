@@ -1,4 +1,4 @@
-# ClojureDart Game Lab
+# ClojureDart Flame Game Engine Tutorials
 
 ## Flame Game Engine tutorials in ClojureDart
 
