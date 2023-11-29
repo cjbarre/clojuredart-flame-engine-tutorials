@@ -466,12 +466,7 @@
           ;; after the camera has been mounted per the following 
           ;; github issue. Used to work differently in an older version 
           ;; of Flame. https://github.com/flame-engine/flame/pull/2452
-          _ (setup-camera camera)]
-      (doto camera
-        (-> .-viewfinder .-visibleGameSize (set! (Vector2 (+ (* card-width 7)
-                                                             (* card-gap 8))
-                                                          (+ (* 4 card-height)
-                                                             (* 3 card-gap)))))))
+          _ (setup-camera camera)])
     nil))
 
 (defn main []
