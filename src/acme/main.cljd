@@ -8,7 +8,7 @@
             ["package:flame/components.dart" :as components :refer [PositionComponent Anchor Sprite Component]]
             ["package:flame/input.dart" :as input :refer [Vector2]]
             ["dart:developer" :as dev]
-            ["dart:ui" :refer [Color Paint PaintingStyle ColorFilter BlendMode RRect Radius Canvas Rect]]
+            ["dart:ui" :refer [Color Paint PaintingStyle ColorFilter BlendMode RRect Radius Canvas Rect Offset]]
             [cljd.flutter.alpha2 :refer [widget run]]))
 
 
@@ -304,17 +304,39 @@
 (defprotocol IPile
   (acquire-card [this card]))
 
+(def stock-pile-border-paint
+  (doto (Paint)
+    (-> .-style (set! PaintingStyle/stroke))
+    (-> .-strokeWidth (set! 10))
+    (-> .-color (set! (Color 0xFF3F5B5D)))))
+
+(def stock-pile-circle-paint
+  (doto (Paint)
+    (-> .-style (set! PaintingStyle/stroke))
+    (-> .-strokeWidth (set! 100))
+    (-> .-color (set! (Color 0x883F5B5D)))))
+
+(defn remove-all-cards
+  [{:flds [data] :as pile}]
+  (let [cards (-> (:cards data)
+                  reverse)]
+    (set! (.-data pile) (assoc data :cards []))
+    cards))
+
 (deftype ^:type-only StockPile [^:mutable data]
   :extends (PositionComponent) ^:mixin TapCallbacks
   (onTapUp
     [this event]
     (let [{:keys [cards waste-pile] :as data} (.-data this)]
-      (when (seq cards)
+      (if (seq cards)
         (let [cards-to-move (-> (take-last 3 cards) reverse)
               _ (set! (.-data this) (update data :cards #(doall (drop-last (count cards-to-move) %))))]
           (doseq [card cards-to-move]
             (flip card)
-            (acquire-card waste-pile card))))))
+            (acquire-card waste-pile card)))
+        (doseq [card (remove-all-cards waste-pile)]
+          (flip card)
+          (acquire-card this card)))))
   
   IPile
   (acquire-card
@@ -324,7 +346,14 @@
       (doto card
         (-> .-position (set! (.-position this)))
         (-> .-priority (set! (count (:cards data)))))
-      (set! (.-data this) (update data :cards conj card)))))
+      (set! (.-data this) (update data :cards conj card))))
+
+  (render [this canvas]
+    (.drawRRect canvas card-rrect stock-pile-border-paint)
+    (.drawCircle canvas
+                 (Offset (/ card-width 2) (/ card-height 2))
+                 (* card-width 0.3)
+                 stock-pile-circle-paint)))
 
 (defn ->StockPile
   ([] (->StockPile {}))
@@ -423,7 +452,6 @@
           stock-pile (->StockPile {:cards [] :waste-pile waste-pile})
           foundations (mapv #(->Foundation {:i %}) (range 5))
           piles (mapv #(->Pile {:i %}) (range 8))
-          #_#_cards (cards {:ranks (:ranks @db) :suits (:suits @db) :columns 7 :rows 4})
           cards (shuffle (cards2 {:ranks (:ranks @db) :suits (:suits @db)}))
           _ (doseq [card cards] (acquire-card stock-pile card))
           world (World)
