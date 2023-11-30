@@ -9,14 +9,14 @@
             ["package:flame/input.dart" :as input :refer [Vector2]]
             ["dart:ui" :refer [Color Paint PaintingStyle RRect Canvas Rect Offset]]
             [acme.card :as card]
-            [acme.sprite :as sprite]))
-
+            [acme.sprite :as sprite]
+            [acme.protocol :refer [IPile acquire-card]]))
 
 (defonce db
   (atom {:id 0}))
 
 (def debug-mode?
-  false)
+  false) 
 
 (defn id
   [db]
@@ -27,9 +27,6 @@
 ;;;;;;;;;;;;;;;
 ;;;; Board ;;;;
 ;;;;;;;;;;;;;;;
-
-(defprotocol IPile
-  (acquire-card [this card]))
 
 (def stock-pile-border-paint
   (doto (Paint)

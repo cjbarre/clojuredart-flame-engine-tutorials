@@ -1,0 +1,4 @@
+(ns acme.protocol)
+
+(defprotocol IPile
+  (acquire-card [this card]))
