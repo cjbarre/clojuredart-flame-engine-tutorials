@@ -11,7 +11,8 @@
             [acme.sprite :as sprite]
             [acme.protocol :refer [IPile acquire-card]]
             [acme.stock-pile :refer [->StockPile]]
-            [acme.foundation-pile :refer [->Foundation]]))
+            [acme.foundation-pile :refer [->Foundation]]
+            [acme.table-pile :refer [->Pile]]))
 
 (defonce db
   (atom {:id 0}))
@@ -28,21 +29,6 @@
 ;;;;;;;;;;;;;;;
 ;;;; Board ;;;;
 ;;;;;;;;;;;;;;;
-
-(deftype ^:type-only Pile [data]
-  :extends (PositionComponent))
-
-(defn ->Pile
-  ([] (->Pile {:i 0}))
-  ([{:keys [i] :as args}]
-   (doto (Pile args)
-     (-> .-size (set! card/card-size))
-     (-> .-position (set! (Vector2 (+ card/card-gap
-                                      (* i
-                                         (+ card/card-width card/card-gap)))
-                                   (+ card/card-height
-                                      (* 2 card/card-gap)))))
-     (-> .-debugMode (set! debug-mode?)))))
 
 (defn fan-out-top-cards
   [^WastePile pile]
@@ -103,8 +89,8 @@
           _ (swap! db assoc :suits (card/suits))
           waste-pile (->WastePile {:cards []})
           stock-pile (->StockPile {:cards [] :waste-pile waste-pile})
-          foundations (mapv #(->Foundation {:i %}) (range 5))
-          piles (mapv #(->Pile {:i %}) (range 8))
+          foundations (mapv #(->Foundation {:i % :debug-mode? debug-mode?}) (range 5))
+          piles (mapv #(->Pile {:i % :debug-mode? debug-mode?}) (range 8))
           cards (shuffle (card/cards2 {:ranks (:ranks @db) :suits (:suits @db)}))
           _ (doseq [card cards] (acquire-card stock-pile card))
           world (World)

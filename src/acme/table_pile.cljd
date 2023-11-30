@@ -1,0 +1,19 @@
+(ns acme.table-pile
+  (:require ["package:flame/input.dart" :as input :refer [Vector2]]
+            ["package:flame/components.dart" :as components :refer [PositionComponent]]
+            [acme.card :as card]))
+
+(deftype ^:type-only Pile [data]
+  :extends (PositionComponent))
+
+(defn ->Pile
+  ([] (->Pile {:i 0}))
+  ([{:keys [i debug-mode?] :as args}]
+   (doto (Pile args)
+     (-> .-size (set! card/card-size))
+     (-> .-position (set! (Vector2 (+ card/card-gap
+                                      (* i
+                                         (+ card/card-width card/card-gap)))
+                                   (+ card/card-height
+                                      (* 2 card/card-gap)))))
+     (-> .-debugMode (set! (or debug-mode? false))))))
