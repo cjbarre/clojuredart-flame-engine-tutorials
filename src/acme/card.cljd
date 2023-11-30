@@ -1,0 +1,270 @@
+(ns acme.card
+  (:require 
+   ["package:flame/components.dart" :refer [PositionComponent Anchor Sprite Component]]
+   ["dart:ui" :refer [Color Paint PaintingStyle ColorFilter BlendMode RRect Radius Canvas Rect]]
+   ["package:flame/input.dart" :refer [Vector2]]
+   [acme.sprite :as sprite]))
+
+;;;;;;;;;;;;;;
+;;;; Suits ;;;
+;;;;;;;;;;;;;;
+
+(defn suit
+  [value label color sprite-coord]
+  {:value value
+   :label label
+   :color color
+   :sprite (sprite/klondike-sprite sprite-coord)})
+
+(defn suits []
+  {0 (suit 0 "♥" :red {:x 1176 :y 17 :w 172 :h 183})
+   1 (suit 1 "♦" :red {:x 973 :y 14 :w 177 :h 182})
+   2 (suit 2 "♣" :black {:x 974 :y 226 :w 184 :h 172})
+   3 (suit 3 "♠" :black {:x 1178 :y 220 :w 176 :h 182})})
+
+;;;;;;;;;;;;;;
+;;;; Ranks ;;;
+;;;;;;;;;;;;;;
+
+(defn rank
+  [value label red-sprite-coord black-sprite-coord]
+  {:value value
+   :label label
+   :red-sprite (sprite/klondike-sprite red-sprite-coord)
+   :black-sprite (sprite/klondike-sprite black-sprite-coord)})
+
+(defn ranks []
+  {1 (rank 1 "A" {:x 335 :y 164 :w 120 :h 129} {:x 789 :y 161 :w 120 :h 129})
+   2 (rank 2 "2" {:x 20 :y 19 :w 83 :h 125} {:x 15 :y 322 :w 83 :h 125})
+   3 (rank 3 "3" {:x 122 :y 19 :w 80 :h 127} {:x 117 :y 322 :w 80 :h 127})
+   4 (rank 4 "4" {:x 213 :y 12 :w 93 :h 132} {:x 208 :y 315 :w 93 :h 132})
+   5 (rank 5 "5" {:x 314 :y 21 :w 85 :h 125} {:x 309 :y 324 :w 85 :h 125})
+   6 (rank 6 "6" {:x 419 :y 17 :w 84 :h 129} {:x 414 :y 320 :w 84 :h 129})
+   7 (rank 7 "7" {:x 509 :y 21 :w 92 :h 128} {:x 505 :y 324 :w 92 :h 128})
+   8 (rank 8 "8" {:x 612 :y 19 :w 78 :h 127} {:x 607 :y 322 :w 78 :h 127})
+   9 (rank 9 "9" {:x 709 :y 19 :w 84 :h 130} {:x 704 :y 322 :w 84 :h 130})
+   10 (rank 10 "10" {:x 810 :y 20 :w 137 :h 127} {:x 805 :y 322 :w 137 :h 127})
+   11 (rank 11 "J" {:x 15 :y 170 :w 56 :h 126} {:x 469 :y 167 :w 56 :h 126})
+   12 (rank 12 "Q" {:x 92 :y 168 :w 132 :h 128} {:x 547 :y 165 :w 132 :h 128})
+   13 (rank 13 "K" {:x 243 :y 170 :w 92 :h 123} {:x 696 :y 167 :w 92 :h 123})})
+
+;;;;;;;;;;;;;;
+;;;; Card ;;;;
+;;;;;;;;;;;;;;
+
+(def card-width 1000.0)
+(def card-height 1400.0)
+(def card-gap 175.0)
+(def card-radius 100.0)
+(def card-size (Vector2 card-width card-height))
+
+(def front-background-paint
+  (doto (Paint)
+    (-> .-color (set! (Color 0xff000000)))))
+
+(def back-background-paint
+  (doto (Paint)
+    (-> .-color (set! (Color 0xff380c02)))))
+
+(def back-border-paint-1
+  (doto (Paint)
+    (-> .-color (set! (Color 0xffdbaf58)))
+    (-> .-style (set! PaintingStyle/stroke))
+    (-> .-strokeWidth (set! 10))))
+
+(def back-border-paint-2
+  (doto (Paint)
+    (-> .-color (set! (Color 0x5CEF971B)))
+    (-> .-style (set! PaintingStyle/stroke))
+    (-> .-strokeWidth (set! 35))))
+
+(def card-rrect
+  (RRect.fromRectAndRadius
+   (Rect.fromLTWH 0.0 0.0 (.-x ^Vector2 card-size) (.-y ^Vector2 card-size))
+   (Radius.circular card-radius)))
+
+(def back-rrect-inner
+  (.deflate ^RRect card-rrect 40.0))
+
+(def flame-sprite
+  (sprite/klondike-sprite {:x 1367 :y 6 :w 357 :h 501}))
+
+(def red-border-paint
+  (doto (Paint)
+    (-> .-color (set! (Color 0xffece8a3)))
+    (-> .-style (set! PaintingStyle/stroke))
+    (-> .-strokeWidth (set! 10.0))))
+
+(def black-border-paint
+  (doto (Paint)
+    (-> .-color (set! (Color 0xff7ab2e8)))
+    (-> .-style (set! PaintingStyle/stroke))
+    (-> .-strokeWidth (set! 10.0))))
+
+(def red-jack
+  (sprite/klondike-sprite {:x 81 :y 565 :w 562 :h 488}))
+
+(def red-queen
+  (sprite/klondike-sprite {:x 717 :y 541 :w 486 :h 515}))
+
+(def red-king
+  (sprite/klondike-sprite {:x 1305 :y 532 :w 407 :h 549}))
+
+(def blue-filter
+  (doto (Paint)
+    (-> .-colorFilter (set! (ColorFilter.mode (Color 0x880d8bff) BlendMode/srcATop)))))
+
+(def black-jack
+  (doto (sprite/klondike-sprite {:x 81 :y 565 :w 562 :h 488})
+    (-> .-paint (set! blue-filter))))
+
+(def black-queen
+  (doto (sprite/klondike-sprite {:x 717 :y 541 :w 486 :h 515})
+    (-> .-paint (set! blue-filter))))
+
+(def black-king
+  (doto (sprite/klondike-sprite {:x 1305 :y 532 :w 407 :h 549})
+    (-> .-paint (set! blue-filter))))
+
+
+(defn draw-sprite
+  [^Canvas canvas
+   ^Sprite sprite
+   relative-x
+   relative-y
+   {:keys [scale rotate?]
+    :or {scale 1.0 rotate? false}}]
+  (when rotate?
+    (.save canvas)
+    (.translate canvas (/ (.-x ^Vector2 card-size) 2.0) (/ (.-y ^Vector2 card-size) 2.0))
+    (.rotate canvas 3.14)
+    (.translate canvas (/ (* -1.0 (.-x ^Vector2 card-size)) 2.0) (/ (* -1.0 (.-y ^Vector2 card-size)) 2.0)))
+  (.render sprite
+           canvas
+           .position (Vector2 (* relative-x (.-x ^Vector2 card-size)) (* relative-y (.-y ^Vector2 card-size)))
+           .anchor Anchor/center
+           .size (.scaled (.-srcSize sprite) scale))
+  (when rotate?
+    (.restore canvas)))
+
+(defn render-front-middle
+  [canvas {{:keys [sprite color]} :suit
+           :keys [rank] :as card}]
+  (case (:value rank)
+    1 (draw-sprite canvas sprite 0.5 0.5 {:scale 2.5})
+    2 (do (draw-sprite canvas sprite 0.5 0.25 {})
+          (draw-sprite canvas sprite 0.5 0.25 {:rotate? true}))
+    3 (do (draw-sprite canvas sprite 0.5 0.2 {})
+          (draw-sprite canvas sprite 0.5 0.5 {})
+          (draw-sprite canvas sprite 0.5 0.2 {:rotate? true}))
+    4 (do (draw-sprite canvas sprite 0.3 0.25 {})
+          (draw-sprite canvas sprite 0.7 0.25 {})
+          (draw-sprite canvas sprite 0.3 0.25 {:rotate? true})
+          (draw-sprite canvas sprite 0.7 0.25 {:rotate? true}))
+    5 (do (draw-sprite canvas sprite 0.3 0.25 {})
+          (draw-sprite canvas sprite 0.7 0.25 {})
+          (draw-sprite canvas sprite 0.3 0.25 {:rotate? true})
+          (draw-sprite canvas sprite 0.7 0.25 {:rotate? true})
+          (draw-sprite canvas sprite 0.5 0.5 {}))
+    6 (do (draw-sprite canvas sprite 0.3 0.25 {})
+          (draw-sprite canvas sprite 0.7 0.25 {})
+          (draw-sprite canvas sprite 0.3 0.5 {})
+          (draw-sprite canvas sprite 0.7 0.5 {})
+          (draw-sprite canvas sprite 0.3 0.25 {:rotate? true})
+          (draw-sprite canvas sprite 0.7 0.25 {:rotate? true}))
+    7 (do (draw-sprite canvas sprite 0.3 0.2 {})
+          (draw-sprite canvas sprite 0.7 0.2 {})
+          (draw-sprite canvas sprite 0.5 0.35 {})
+          (draw-sprite canvas sprite 0.3 0.5 {})
+          (draw-sprite canvas sprite 0.7 0.5 {})
+          (draw-sprite canvas sprite 0.3 0.2 {:rotate? true})
+          (draw-sprite canvas sprite 0.7 0.2 {:rotate? true}))
+    8 (do (draw-sprite canvas sprite 0.3 0.2 {})
+          (draw-sprite canvas sprite 0.7 0.2 {})
+          (draw-sprite canvas sprite 0.5 0.35 {})
+          (draw-sprite canvas sprite 0.3 0.5 {})
+          (draw-sprite canvas sprite 0.7 0.5 {})
+          (draw-sprite canvas sprite 0.3 0.2 {:rotate? true})
+          (draw-sprite canvas sprite 0.7 0.2 {:rotate? true})
+          (draw-sprite canvas sprite 0.5 0.35 {:rotate? true}))
+    9 (do (draw-sprite canvas sprite 0.3 0.2 {})
+          (draw-sprite canvas sprite 0.7 0.2 {})
+          (draw-sprite canvas sprite 0.5 0.3 {})
+          (draw-sprite canvas sprite 0.3 0.4 {})
+          (draw-sprite canvas sprite 0.7 0.4 {})
+          (draw-sprite canvas sprite 0.3 0.2, {:rotate? true})
+          (draw-sprite canvas sprite 0.7 0.2, {:rotate? true})
+          (draw-sprite canvas sprite 0.3 0.4, {:rotate? true})
+          (draw-sprite canvas sprite 0.7 0.4, {:rotate? true}))
+    10 (do (draw-sprite canvas sprite 0.3 0.2 {})
+           (draw-sprite canvas sprite 0.7 0.2 {})
+           (draw-sprite canvas sprite 0.5 0.3 {})
+           (draw-sprite canvas sprite 0.3 0.4 {})
+           (draw-sprite canvas sprite 0.7 0.4 {})
+           (draw-sprite canvas sprite 0.3 0.2, {:rotate? true})
+           (draw-sprite canvas sprite 0.7 0.2, {:rotate? true})
+           (draw-sprite canvas sprite 0.5 0.3, {:rotate? true})
+           (draw-sprite canvas sprite 0.3 0.4, {:rotate? true})
+           (draw-sprite canvas sprite 0.7 0.4, {:rotate? true}))
+    11 (draw-sprite canvas (if (= :red color) red-jack black-jack) 0.5 0.5 {})
+    12 (draw-sprite canvas (if (= :red color) red-queen black-queen) 0.5 0.5 {})
+    13 (draw-sprite canvas (if (= :red color) red-king black-king) 0.5 0.5 {})))
+
+(defn render-front
+  [^Canvas canvas card]
+  (let [rank-sprite (if (= :red (-> card :suit :color))
+                      (-> card :rank :red-sprite)
+                      (-> card :rank :black-sprite))
+        suit-sprite (-> card :suit :sprite)]
+    (.drawRRect canvas card-rrect front-background-paint)
+    (.drawRRect canvas card-rrect (if (= :red (-> card :suit :color))
+                                    red-border-paint
+                                    black-border-paint))
+    (draw-sprite canvas rank-sprite 0.1 0.08 {})
+    (draw-sprite canvas rank-sprite 0.1 0.08 {:rotate? true})
+    (draw-sprite canvas suit-sprite 0.1 0.18 {:scale 0.5})
+    (draw-sprite canvas suit-sprite 0.1 0.18 {:rotate? true :scale 0.5})
+    (render-front-middle canvas card)))
+
+(defn render-back
+  [^Canvas canvas {:keys [rank suit]}]
+  (.drawRRect canvas card-rrect back-background-paint)
+  (.drawRRect canvas card-rrect back-border-paint-1)
+  (.drawRRect canvas back-rrect-inner back-border-paint-2)
+  (.render ^Sprite flame-sprite canvas .position (. ^Vector2 card-size "/" 2.0) .anchor Anchor/center))
+
+(deftype ^:type-only Card [^:mutable data]
+  :extends (PositionComponent)
+  (render
+    [this canvas]
+    (if (-> this .-data :face-up?)
+      (render-front canvas (.-data this))
+      (render-back canvas (.-data this))))
+  (toString
+    [this]
+    (str (-> this .-data :rank :label)
+         (-> this .-data :suit :label))))
+
+(defn ->Card [{:keys [face-up? rank suit] :as args}]
+  (let [card (Card args)
+        _ (doto card (-> .-size (set! card-size)))]
+    card))
+
+(defn flip
+  [^Card card]
+  (let [data (.-data card)]
+    (set! (.-data card) (update data :face-up? not))))
+
+(defn cards
+  [{:keys [ranks suits columns rows]}]
+  (for [i (range columns)
+        j (range rows)]
+    (let [card (->Card {:rank (get ranks (inc (rand-int 13))) :suit (get suits (rand-int 4)) :face-up? true})]
+      (doto card
+        (-> .-position (set! (Vector2 (+ 100 (* i 1150)) (+ 100 (* j 1500))))))
+      card)))
+
+(defn cards2 [{:keys [ranks suits columns rows]}]
+  (for [rank (range 1 14)
+        suit (range 0 4)]
+    (->Card {:face-up? false :rank (get ranks rank) :suit (get suits suit)})))

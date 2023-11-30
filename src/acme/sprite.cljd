@@ -1,0 +1,13 @@
+(ns acme.sprite
+  (:require ["package:flame/components.dart" :refer [Sprite]]
+            ["package:flame/flame.dart" :refer [Flame]]
+            ["package:flame/input.dart" :refer [Vector2]]))
+
+(def klondike-sprite-name
+  "klondike-sprites.png")
+
+(defn klondike-sprite
+  [{:keys [^double x ^double y ^double w ^double h]}]
+  (Sprite (.fromCache (. Flame images) klondike-sprite-name)
+          .srcPosition (Vector2 x y)
+          .srcSize (Vector2 w h)))
