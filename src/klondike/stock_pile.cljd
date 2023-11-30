@@ -4,7 +4,7 @@
    ["dart:ui" :refer [Color Paint PaintingStyle RRect Canvas Rect Offset]]
    ["package:flame/input.dart" :as input :refer [Vector2]]
    ["package:flame/components.dart" :as components :refer [PositionComponent]]
-   [klondike.protocol :refer [IPile acquire-card]]
+   [klondike.protocol :refer [IPile acquire-card remove-all-cards]]
    [klondike.card :as card]))
 
 (def stock-pile-border-paint
@@ -18,13 +18,6 @@
     (-> .-style (set! PaintingStyle/stroke))
     (-> .-strokeWidth (set! 100))
     (-> .-color (set! (Color 0x883F5B5D)))))
-
-(defn remove-all-cards
-  [{:flds [data] :as pile}]
-  (let [cards (-> (:cards data)
-                  reverse)]
-    (set! (.-data pile) (assoc data :cards []))
-    cards))
 
 (deftype ^:type-only StockPile [^:mutable data]
   :extends (PositionComponent) ^:mixin TapCallbacks

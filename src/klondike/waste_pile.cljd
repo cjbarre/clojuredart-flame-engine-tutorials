@@ -2,14 +2,14 @@
   (:require ["package:flame/input.dart" :as input :refer [Vector2]]
             ["package:flame/components.dart" :as components :refer [PositionComponent Anchor]]
             [klondike.card :as card]
-            [klondike.protocol :refer [IPile acquire-card]]))
+            [klondike.protocol :refer [IPile acquire-card remove-all-cards]]))
 
 (defprotocol IWastePile
   (fan-out-top-cards [this]))
 
 (deftype ^:type-only WastePile [^:mutable data]
   :extends (PositionComponent)
-         
+
   IWastePile
   (fan-out-top-cards [this]
     (let [{:keys [cards]} data
@@ -31,7 +31,14 @@
         (-> .-position (set! (.-position this)))
         (-> .-priority (set! (count (:cards data)))))
       (set! (.-data this) (update data :cards conj card))
-      (fan-out-top-cards this))))
+      (fan-out-top-cards this)))
+
+  (remove-all-cards
+    [this]
+    (let [cards (-> (:cards data)
+                    reverse)]
+      (set! (.-data this) (assoc data :cards []))
+      cards)))
 
 (defn ->WastePile
   ([] (->WastePile {}))

@@ -1,4 +1,5 @@
 (ns klondike.protocol)
 
 (defprotocol IPile
-  (acquire-card [this card]))
+  (acquire-card [this card])
+  (remove-all-cards [this]))
