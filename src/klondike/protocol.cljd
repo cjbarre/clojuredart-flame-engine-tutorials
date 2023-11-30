@@ -1,4 +1,4 @@
-(ns acme.protocol)
+(ns klondike.protocol)
 
 (defprotocol IPile
   (acquire-card [this card]))

@@ -1,4 +1,4 @@
-(ns acme.sprite
+(ns klondike.sprite
   (:require ["package:flame/components.dart" :refer [Sprite]]
             ["package:flame/flame.dart" :refer [Flame]]
             ["package:flame/input.dart" :refer [Vector2]]))

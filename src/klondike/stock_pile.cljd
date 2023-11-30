@@ -1,11 +1,11 @@
-(ns acme.stock-pile
+(ns klondike.stock-pile
   (:require
    ["package:flame/events.dart" :as events :refer [TapCallbacks]]
    ["dart:ui" :refer [Color Paint PaintingStyle RRect Canvas Rect Offset]]
    ["package:flame/input.dart" :as input :refer [Vector2]]
    ["package:flame/components.dart" :as components :refer [PositionComponent]]
-   [acme.protocol :refer [IPile acquire-card]]
-   [acme.card :as card]))
+   [klondike.protocol :refer [IPile acquire-card]]
+   [klondike.card :as card]))
 
 (def stock-pile-border-paint
   (doto (Paint)

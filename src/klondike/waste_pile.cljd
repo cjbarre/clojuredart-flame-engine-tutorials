@@ -1,8 +1,8 @@
-(ns acme.waste-pile
+(ns klondike.waste-pile
   (:require ["package:flame/input.dart" :as input :refer [Vector2]]
             ["package:flame/components.dart" :as components :refer [PositionComponent Anchor]]
-            [acme.card :as card]
-            [acme.protocol :refer [IPile acquire-card]]))
+            [klondike.card :as card]
+            [klondike.protocol :refer [IPile acquire-card]]))
 
 (defn fan-out-top-cards
   [pile]

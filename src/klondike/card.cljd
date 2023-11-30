@@ -1,9 +1,9 @@
-(ns acme.card
+(ns klondike.card
   (:require 
    ["package:flame/components.dart" :refer [PositionComponent Anchor Sprite Component]]
    ["dart:ui" :refer [Color Paint PaintingStyle ColorFilter BlendMode RRect Radius Canvas Rect]]
    ["package:flame/input.dart" :refer [Vector2]]
-   [acme.sprite :as sprite]))
+   [klondike.sprite :as sprite]))
 
 ;;;;;;;;;;;;;;
 ;;;; Suits ;;;

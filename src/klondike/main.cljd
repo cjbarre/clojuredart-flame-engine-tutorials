@@ -1,17 +1,17 @@
-(ns acme.main
+(ns klondike.main
   (:require ["package:flutter/material.dart" :as m]
             ["package:flutter/widgets.dart" :as fw]
             ["package:flame/flame.dart" :as flame]
             ["package:flame/game.dart" :as game]
             ["package:flame/camera.dart" :as camera :refer [World]] 
-            [acme.card :as card]
-            [acme.sprite :as sprite]
-            [acme.protocol :refer [acquire-card]]
-            [acme.stock-pile :refer [->StockPile]]
-            [acme.foundation-pile :refer [->Foundation]]
-            [acme.table-pile :refer [->Pile]]
-            [acme.waste-pile :refer [->WastePile]]
-            [acme.camera :refer [->Camera setup-camera]]))
+            [klondike.card :as card]
+            [klondike.sprite :as sprite]
+            [klondike.protocol :refer [acquire-card]]
+            [klondike.stock-pile :refer [->StockPile]]
+            [klondike.foundation-pile :refer [->Foundation]]
+            [klondike.table-pile :refer [->Pile]]
+            [klondike.waste-pile :refer [->WastePile]]
+            [klondike.camera :refer [->Camera setup-camera]]))
 
 (def debug-mode?
   false) 

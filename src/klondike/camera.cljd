@@ -1,9 +1,9 @@
-(ns acme.camera
+(ns klondike.camera
   (:require
    ["package:flame/camera.dart" :as camera :refer [CameraComponent]]
    ["package:flame/components.dart" :as components :refer [Anchor]]
    ["package:flame/input.dart" :as input :refer [Vector2]]
-   [acme.card :as card]))
+   [klondike.card :as card]))
 
 (deftype ^:type-only Camera [data]
   :extends (CameraComponent .world (:world data)))

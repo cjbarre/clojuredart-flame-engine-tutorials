@@ -1,7 +1,7 @@
-(ns acme.foundation-pile
+(ns klondike.foundation-pile
   (:require ["package:flame/input.dart" :as input :refer [Vector2]]
             ["package:flame/components.dart" :as components :refer [PositionComponent Anchor]]
-            [acme.card :as card]))
+            [klondike.card :as card]))
 
 (deftype ^:type-only Foundation [data]
   :extends (PositionComponent))
