@@ -4,21 +4,24 @@
             [klondike.card :as card]
             [klondike.protocol :refer [IPile acquire-card]]))
 
-(defn fan-out-top-cards
-  [pile]
-  (let [{:keys [cards]} (.-data pile)
-        qty (count cards)
-        fan-offset (Vector2 (* card/card-width 0.2) 0)]
-    (doseq [card cards]
-      (set! (.-position card) (.-position pile)))
-    (cond
-      (== qty 2) (.add (.-position ^card/Card (second cards)) fan-offset)
-      (>= qty 3) (let [cards (reverse cards)]
-                   (.add (.-position ^card/Card (second cards)) fan-offset)
-                   (.addScaled (.-position ^card/Card (first cards)) fan-offset 2)))))
+(defprotocol IWastePile
+  (fan-out-top-cards [this]))
 
 (deftype ^:type-only WastePile [^:mutable data]
   :extends (PositionComponent)
+         
+  IWastePile
+  (fan-out-top-cards [this]
+    (let [{:keys [cards]} data
+          qty (count cards)
+          fan-offset (Vector2 (* card/card-width 0.2) 0)]
+      (doseq [card cards]
+        (set! (.-position card) (.-position this)))
+      (cond
+        (== qty 2) (.add (.-position ^card/Card (second cards)) fan-offset)
+        (>= qty 3) (let [cards (reverse cards)]
+                     (.add (.-position ^card/Card (second cards)) fan-offset)
+                     (.addScaled (.-position ^card/Card (first cards)) fan-offset 2)))))
   IPile
   (acquire-card
     [this ^card/Card card]
