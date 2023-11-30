@@ -1,15 +1,51 @@
 (ns klondike.foundation-pile
   (:require ["package:flame/input.dart" :as input :refer [Vector2]]
-            ["package:flame/components.dart" :as components :refer [PositionComponent Anchor]]
-            [klondike.card :as card]))
+            ["package:flame/components.dart" :as components :refer [Sprite PositionComponent Anchor]]
+            ["dart:ui" :refer [Color Paint BlendMode PaintingStyle]]
+            [klondike.card :as card]
+            [klondike.protocol :refer [IPile acquire-card]]))
 
-(deftype ^:type-only Foundation [data]
-  :extends (PositionComponent))
+
+;; canvas.drawRRect(KlondikeGame.cardRRect, _borderPaint);
+
+(deftype ^:type-only Foundation [^:mutable data]
+  :extends (PositionComponent)
+
+  (render
+    [this canvas]
+    (let [suit (:suit data)
+          sprite (:sprite suit)
+          suit-color (if (= :red (:color suit))
+                       (Color 0x3a000000)
+                       (Color 0x64000000))
+          suit-paint (doto (Paint)
+                       (-> .-color (set! suit-color))
+                       (-> .-blendMode (set! BlendMode/luminosity)))
+          border-paint (doto (Paint)
+                         (-> .-style (set! PaintingStyle/stroke))
+                         (-> .-strokeWidth (set! 10))
+                         (-> .-color (set! (Color 0x50ffffff))))]
+      (. canvas drawRRect card/card-rrect border-paint)
+      (.render ^Sprite sprite
+               canvas
+               .position (. (.-size this) "/" 2)
+               .anchor Anchor/center
+               .size (Vector2/all (* card/card-width 0.6))
+               .overridePaint suit-paint)))
+
+  IPile
+  (acquire-card
+    [this ^card/Card card]
+    (assert (not (-> card .-data :face-up?)))
+    (doto card
+      (-> .-position (set! (.-position this)))
+      (-> .-priority (set! (-> data :cards count))))
+    (set! (.-data this) (update data :cards conj card))))
 
 (defn ->Foundation
-  ([] (->Foundation {:i 0}))
-  ([{:keys [i debug-mode?] :as args}]
-   (doto (Foundation args)
+  ([] (->Foundation {:i 0 :cards []}))
+  ([{:keys [i cards suit debug-mode?] :as data}]
+   (doto (Foundation data)
      (-> .-size (set! card/card-size))
      (-> .-position (set! (Vector2 (+ (* (+ i 3)
                                          (+ card/card-width card/card-gap))

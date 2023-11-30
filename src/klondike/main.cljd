@@ -14,31 +14,33 @@
             [klondike.camera :refer [->Camera setup-camera]]))
 
 (def debug-mode?
-  false) 
+  false)
 
 (deftype KlondikeGame []
   :extends game/FlameGame
   (^:async onLoad [this]
-    (let [_ (await (.load (. flame/Flame images) sprite/klondike-sprite-name))
-          waste-pile (->WastePile {:cards []})
-          stock-pile (->StockPile {:cards [] :waste-pile waste-pile})
-          foundations (mapv #(->Foundation {:i % :debug-mode? debug-mode?}) (range 5))
-          piles (mapv #(->Pile {:i % :debug-mode? debug-mode?}) (range 8))
-          cards (shuffle (card/cards2 {:ranks (card/ranks) :suits (card/suits)}))
-          _ (doseq [card cards] (acquire-card stock-pile card))
-          world (World)
-          camera (->Camera {:world world})
-          components (concat [stock-pile waste-pile]
-                             foundations
-                             piles
-                             cards)
-          _ (await (.addAll ^World world components))
-          _ (await (.addAll this [world camera])) 
-          ;; Camera has to be set up when using visibleGameSize 
-          ;; after the camera has been mounted per the following 
-          ;; github issue. Used to work differently in an older version 
-          ;; of Flame. https://github.com/flame-engine/flame/pull/2452
-          _ (setup-camera camera)])
+   (let [_ (await (.load (. flame/Flame images) sprite/klondike-sprite-name))
+         suits (card/suits)
+         ranks (card/ranks)
+         waste-pile (->WastePile {:cards []})
+         stock-pile (->StockPile {:cards [] :waste-pile waste-pile})
+         foundations (mapv #(->Foundation {:i % :suit (get suits %) :debug-mode? debug-mode?}) (range 4))
+         piles (mapv #(->Pile {:i % :debug-mode? debug-mode?}) (range 8))
+         cards (shuffle (card/cards2 {:ranks ranks :suits suits}))
+         _ (doseq [card cards] (acquire-card stock-pile card))
+         world (World)
+         camera (->Camera {:world world})
+         components (concat [stock-pile waste-pile]
+                            foundations
+                            piles
+                            cards)
+         _ (await (.addAll ^World world components))
+         _ (await (.addAll this [world camera]))
+         ;; Camera has to be set up when using visibleGameSize
+         ;; after the camera has been mounted per the following
+         ;; github issue. Used to work differently in an older version
+         ;; of Flame. https://github.com/flame-engine/flame/pull/2452
+         _ (setup-camera camera)])
     nil))
 
 (defn main []
