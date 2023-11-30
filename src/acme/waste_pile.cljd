@@ -1,0 +1,41 @@
+(ns acme.waste-pile
+  (:require ["package:flame/input.dart" :as input :refer [Vector2]]
+            ["package:flame/components.dart" :as components :refer [PositionComponent Anchor]]
+            [acme.card :as card]
+            [acme.protocol :refer [IPile acquire-card]]))
+
+(defn fan-out-top-cards
+  [pile]
+  (let [{:keys [cards]} (.-data pile)
+        qty (count cards)
+        fan-offset (Vector2 (* card/card-width 0.2) 0)]
+    (doseq [card cards]
+      (set! (.-position card) (.-position pile)))
+    (cond
+      (== qty 2) (.add (.-position ^card/Card (second cards)) fan-offset)
+      (>= qty 3) (let [cards (reverse cards)]
+                   (.add (.-position ^card/Card (second cards)) fan-offset)
+                   (.addScaled (.-position ^card/Card (first cards)) fan-offset 2)))))
+
+(deftype ^:type-only WastePile [^:mutable data]
+  :extends (PositionComponent)
+  IPile
+  (acquire-card
+    [this ^card/Card card]
+    (assert (-> card .-data :face-up?))
+    (let [data (.-data this)]
+      (doto card
+        (-> .-position (set! (.-position this)))
+        (-> .-priority (set! (count (:cards data)))))
+      (set! (.-data this) (update data :cards conj card))
+      (fan-out-top-cards this))))
+
+(defn ->WastePile
+  ([] (->WastePile {}))
+  ([{:keys [cards debug-mode?] :as data}]
+   (doto (WastePile data)
+     (-> .-size (set! card/card-size))
+     (-> .-position (set! (Vector2 (+ card/card-width
+                                      (* card/card-gap 2))
+                                   card/card-gap)))
+     (-> .-debugMode (set! (or debug-mode? false))))))
