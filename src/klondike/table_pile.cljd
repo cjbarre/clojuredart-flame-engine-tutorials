@@ -1,15 +1,55 @@
 (ns klondike.table-pile
   (:require ["package:flame/input.dart" :as input :refer [Vector2]]
             ["package:flame/components.dart" :as components :refer [PositionComponent]]
-            [klondike.card :as card]))
+            ["dart:ui" :refer [Color Paint BlendMode PaintingStyle]]
+            [klondike.card :as card]
+            [klondike.protocol :refer [IPile acquire-card]]))
 
-(deftype ^:type-only Pile [data]
-  :extends (PositionComponent))
 
-(defn ->Pile
-  ([] (->Pile {:i 0}))
-  ([{:keys [i debug-mode?] :as args}]
-   (doto (Pile args)
+
+(def fan-offset (Vector2 0 (* card/card-height 0.05)))
+
+(def border-paint
+  (doto (Paint)
+    (-> .-style (set! PaintingStyle/stroke))
+    (-> .-strokeWidth (set! 10))
+    (-> .-color (set! (Color 0x50ffffff)))))
+
+(defprotocol ITablePile
+  (flip-top-card [this]))
+
+(deftype ^:type-only TablePile [^:mutable data]
+  :extends (PositionComponent)
+
+  (render
+    [this canvas]
+    (. canvas drawRRect card/card-rrect border-paint))
+
+  ITablePile
+  (flip-top-card
+    [this]
+    (card/flip (last (:cards data))))
+
+  IPile
+  (acquire-card
+    [this ^card/Card card]
+    (let [{:keys [i cards]} data]
+      (if (empty? cards)
+        (doto ^card/Card card
+          (-> .-position (set! (.-position this))))
+        (let [last-card-position (-> cards last .-position)
+              new-card-position (. last-card-position "+" fan-offset)]
+          (doto card
+            (-> .-position (set! new-card-position)))))
+      (doto card
+        (-> .-priority (set! (count cards))))
+      (doto this
+        (-> .-data (set! (update data :cards conj card)))))))
+
+(defn ->TablePile
+  ([] (->TablePile {:i 0}))
+  ([{:keys [i cards debug-mode?] :as args}]
+   (doto (TablePile args)
      (-> .-size (set! card/card-size))
      (-> .-position (set! (Vector2 (+ card/card-gap
                                       (* i

@@ -9,12 +9,66 @@
             [klondike.protocol :refer [acquire-card]]
             [klondike.stock-pile :refer [->StockPile]]
             [klondike.foundation-pile :refer [->Foundation]]
-            [klondike.table-pile :refer [->Pile]]
+            [klondike.table-pile :as table-pile :refer [->TablePile flip-top-card]]
             [klondike.waste-pile :refer [->WastePile]]
             [klondike.camera :refer [->Camera setup-camera]]))
 
 (def debug-mode?
   false)
+
+
+  ;; @override
+  ;; Future<void> onLoad() async {
+  ;;   ...
+
+  ;;   final cards = [
+  ;;     for (var rank = 1; rank <= 13; rank++)
+  ;;       for (var suit = 0; suit < 4; suit++)
+  ;;         Card(rank, suit)
+  ;;   ];
+  ;;   cards.shuffle();
+  ;;   world.addAll(cards);
+
+  ;;   int cardToDeal = cards.length - 1;
+  ;;   for (var i = 0; i < 7; i++) {
+  ;;     for (var j = i; j < 7; j++) {
+  ;;       piles[j].acquireCard(cards[cardToDeal--]);
+  ;;     }
+  ;;     piles[i].flipTopCard();
+  ;;   }
+  ;;   for(int n = 0; n <= cardToDeal; n++) {
+  ;;     stock.acquireCard(cards[n]);
+  ;;   }
+  ;; }
+
+(defn partition-increasing [items]
+  (loop [remaining-items items
+         current-size 1
+         result []]
+    (if (empty? remaining-items)
+      result
+      (let [partition (take current-size remaining-items)
+            new-remaining (drop current-size remaining-items)]
+        (recur new-remaining (inc current-size) (conj result partition))))))
+
+;; Usage
+(partition-increasing (range 1 29))
+
+
+(defn deal-cards
+  [{:keys [stock-pile table-piles cards]}]
+  (let [num-cards-to-deal 28
+        piles-of-cards-to-deal (->> cards
+                                    (take num-cards-to-deal)
+                                    (partition-increasing))]
+
+    (doseq [[table-pile cards] (zipmap table-piles piles-of-cards-to-deal)]
+      (doseq [card cards]
+        (acquire-card table-pile card))
+      (table-pile/flip-top-card table-pile))
+
+    (doseq [card (drop num-cards-to-deal cards)]
+      (acquire-card stock-pile card))))
 
 (deftype KlondikeGame []
   :extends game/FlameGame
@@ -25,9 +79,9 @@
          waste-pile (->WastePile {:cards []})
          stock-pile (->StockPile {:cards [] :waste-pile waste-pile})
          foundations (mapv #(->Foundation {:i % :suit (get suits %) :debug-mode? debug-mode?}) (range 4))
-         piles (mapv #(->Pile {:i % :debug-mode? debug-mode?}) (range 8))
+         piles (mapv #(->TablePile {:i % :debug-mode? debug-mode? :cards []}) (range 7))
          cards (shuffle (card/cards2 {:ranks ranks :suits suits}))
-         _ (doseq [card cards] (acquire-card stock-pile card))
+         ;; _ (doseq [card cards] (acquire-card stock-pile card))
          world (World)
          camera (->Camera {:world world})
          components (concat [stock-pile waste-pile]
@@ -40,8 +94,11 @@
          ;; after the camera has been mounted per the following
          ;; github issue. Used to work differently in an older version
          ;; of Flame. https://github.com/flame-engine/flame/pull/2452
-         _ (setup-camera camera)])
-    nil))
+         _ (setup-camera camera)]
+
+     (deal-cards {:stock-pile stock-pile :table-piles piles :cards cards})
+     )
+   nil))
 
 (defn main []
   (fw/WidgetsFlutterBinding.ensureInitialized)
