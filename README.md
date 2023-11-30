@@ -1,5 +1,8 @@
 # ClojureDart Flame Game Engine Tutorials
 
+## macos
+`clj -M:cljd flutter -d macos`
+
 ## Flame Game Engine tutorials in ClojureDart
 
 I'm convinced that ClojureDart is a game changer. 
