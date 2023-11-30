@@ -3,14 +3,14 @@
             ["package:flutter/widgets.dart" :as fw]
             ["package:flame/flame.dart" :as flame]
             ["package:flame/game.dart" :as game]
-            ["package:flame/camera.dart" :as camera :refer [World CameraComponent]]
-            ["package:flame/events.dart" :as events :refer [TapCallbacks]] 
+            ["package:flame/camera.dart" :as camera :refer [World CameraComponent]] 
             ["package:flame/components.dart" :as components :refer [PositionComponent Anchor]]
             ["package:flame/input.dart" :as input :refer [Vector2]]
             ["dart:ui" :refer [Color Paint PaintingStyle RRect Canvas Rect Offset]]
             [acme.card :as card]
             [acme.sprite :as sprite]
-            [acme.protocol :refer [IPile acquire-card]]))
+            [acme.protocol :refer [IPile acquire-card]]
+            [acme.stock-pile :refer [->StockPile]]))
 
 (defonce db
   (atom {:id 0}))
@@ -27,65 +27,6 @@
 ;;;;;;;;;;;;;;;
 ;;;; Board ;;;;
 ;;;;;;;;;;;;;;;
-
-(def stock-pile-border-paint
-  (doto (Paint)
-    (-> .-style (set! PaintingStyle/stroke))
-    (-> .-strokeWidth (set! 10))
-    (-> .-color (set! (Color 0xFF3F5B5D)))))
-
-(def stock-pile-circle-paint
-  (doto (Paint)
-    (-> .-style (set! PaintingStyle/stroke))
-    (-> .-strokeWidth (set! 100))
-    (-> .-color (set! (Color 0x883F5B5D)))))
-
-(defn remove-all-cards
-  [{:flds [data] :as pile}]
-  (let [cards (-> (:cards data)
-                  reverse)]
-    (set! (.-data pile) (assoc data :cards []))
-    cards))
-
-(deftype ^:type-only StockPile [^:mutable data]
-  :extends (PositionComponent) ^:mixin TapCallbacks
-  (onTapUp
-    [this event]
-    (let [{:keys [cards waste-pile] :as data} (.-data this)]
-      (if (seq cards)
-        (let [cards-to-move (-> (take-last 3 cards) reverse)
-              _ (set! (.-data this) (update data :cards #(doall (drop-last (count cards-to-move) %))))]
-          (doseq [card cards-to-move]
-            (card/flip card)
-            (acquire-card waste-pile card)))
-        (doseq [card (remove-all-cards waste-pile)]
-          (card/flip card)
-          (acquire-card this card)))))
-  
-  IPile
-  (acquire-card
-    [this ^card/Card card]
-    (assert (not (-> card .-data :face-up?)))
-    (let [data (.-data this)]
-      (doto card
-        (-> .-position (set! (.-position this)))
-        (-> .-priority (set! (count (:cards data)))))
-      (set! (.-data this) (update data :cards conj card))))
-
-  (render [this canvas]
-    (.drawRRect canvas card/card-rrect stock-pile-border-paint)
-    (.drawCircle canvas
-                 (Offset (/ card/card-width 2) (/ card/card-height 2))
-                 (* card/card-width 0.3)
-                 stock-pile-circle-paint)))
-
-(defn ->StockPile
-  ([] (->StockPile {}))
-  ([{:keys [cards waste-pile] :as data}]
-   (doto (StockPile data)
-     (-> .-size (set! card/card-size))
-     (-> .-position (set! (Vector2 card/card-gap card/card-gap)))
-     (-> .-debugMode (set! debug-mode?)))))
 
 (deftype ^:type-only Foundation [data]
   :extends (PositionComponent))
