@@ -1,0 +1,20 @@
+(ns acme.camera
+  (:require
+   ["package:flame/camera.dart" :as camera :refer [CameraComponent]]
+   ["package:flame/components.dart" :as components :refer [Anchor]]
+   ["package:flame/input.dart" :as input :refer [Vector2]]
+   [acme.card :as card]))
+
+(deftype ^:type-only Camera [data]
+  :extends (CameraComponent .world (:world data)))
+
+(defn setup-camera [^CameraComponent camera]
+  (doto camera
+    (-> .-viewfinder .-visibleGameSize (set! (Vector2 (+ (* card/card-width 7)
+                                                         (* card/card-gap 8))
+                                                      (+ (* 4 card/card-height)
+                                                         (* 3 card/card-gap)))))
+    (-> .-viewfinder .-position (set! (Vector2 (+ (* card/card-width 3.5)
+                                                  (* card/card-gap 4))
+                                               0)))
+    (-> .-viewfinder .-anchor (set! Anchor/topCenter))))
