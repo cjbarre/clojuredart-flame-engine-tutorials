@@ -10,7 +10,8 @@
             [acme.card :as card]
             [acme.sprite :as sprite]
             [acme.protocol :refer [IPile acquire-card]]
-            [acme.stock-pile :refer [->StockPile]]))
+            [acme.stock-pile :refer [->StockPile]]
+            [acme.foundation-pile :refer [->Foundation]]))
 
 (defonce db
   (atom {:id 0}))
@@ -27,19 +28,6 @@
 ;;;;;;;;;;;;;;;
 ;;;; Board ;;;;
 ;;;;;;;;;;;;;;;
-
-(deftype ^:type-only Foundation [data]
-  :extends (PositionComponent))
-
-(defn ->Foundation
-  ([] (->Foundation {:i 0}))
-  ([{:keys [i] :as args}]
-   (doto (Foundation args)
-     (-> .-size (set! card/card-size))
-     (-> .-position (set! (Vector2 (+ (* (+ i 3)
-                                         (+ card/card-width card/card-gap))
-                                      card/card-gap) card/card-gap)))
-     (-> .-debugMode (set! debug-mode?)))))
 
 (deftype ^:type-only Pile [data]
   :extends (PositionComponent))

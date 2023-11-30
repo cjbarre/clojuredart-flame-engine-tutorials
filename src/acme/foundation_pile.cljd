@@ -1,0 +1,17 @@
+(ns acme.foundation-pile
+  (:require ["package:flame/input.dart" :as input :refer [Vector2]]
+            ["package:flame/components.dart" :as components :refer [PositionComponent Anchor]]
+            [acme.card :as card]))
+
+(deftype ^:type-only Foundation [data]
+  :extends (PositionComponent))
+
+(defn ->Foundation
+  ([] (->Foundation {:i 0}))
+  ([{:keys [i debug-mode?] :as args}]
+   (doto (Foundation args)
+     (-> .-size (set! card/card-size))
+     (-> .-position (set! (Vector2 (+ (* (+ i 3)
+                                         (+ card/card-width card/card-gap))
+                                      card/card-gap) card/card-gap)))
+     (-> .-debugMode (set! (or debug-mode? false))))))
