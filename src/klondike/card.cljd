@@ -1,8 +1,9 @@
 (ns klondike.card
   (:require 
    ["package:flame/components.dart" :refer [PositionComponent Anchor Sprite Component]]
-   ["dart:ui" :refer [Color Paint PaintingStyle ColorFilter BlendMode RRect Radius Canvas Rect]]
+   ["dart:ui" :as dart.ui :refer [Color Paint PaintingStyle ColorFilter BlendMode RRect Radius Canvas Rect]]
    ["package:flame/input.dart" :refer [Vector2]]
+   ["package:flame/events.dart" :refer [DragCallbacks]]
    [klondike.sprite :as sprite]))
 
 ;;;;;;;;;;;;;;
@@ -79,9 +80,9 @@
     (-> .-strokeWidth (set! 35))))
 
 (def card-rrect
-  (RRect.fromRectAndRadius
-   (Rect.fromLTWH 0.0 0.0 (.-x ^Vector2 card-size) (.-y ^Vector2 card-size))
-   (Radius.circular card-radius)))
+  (RRect/fromRectAndRadius
+   (Rect/fromLTWH 0.0 0.0 (.-x ^Vector2 card-size) (.-y ^Vector2 card-size))
+   (Radius/circular card-radius)))
 
 (def back-rrect-inner
   (.deflate ^RRect card-rrect 40.0))
@@ -234,7 +235,7 @@
   (.render ^Sprite flame-sprite canvas .position (. ^Vector2 card-size "/" 2.0) .anchor Anchor/center))
 
 (deftype ^:type-only Card [^:mutable data]
-  :extends (PositionComponent)
+  :extends (PositionComponent) ^:mixin DragCallbacks
   (render
     [this canvas]
     (if (-> this .-data :face-up?)
@@ -243,7 +244,19 @@
   (toString
     [this]
     (str (-> this .-data :rank :label)
-         (-> this .-data :suit :label))))
+         (-> this .-data :suit :label)))
+
+  (onDragStart
+    [this event]
+    (doto this
+      (-> .-priority (set! 100)))
+    nil)
+
+  (onDragUpdate
+    [this event]
+    (. (.-position this) add (.-delta event))
+    nil)
+  )
 
 (defn ->Card [{:keys [face-up? rank suit] :as args}]
   (let [card (Card args)
