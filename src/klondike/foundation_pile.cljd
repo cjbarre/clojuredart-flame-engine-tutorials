@@ -3,7 +3,8 @@
             ["package:flame/components.dart" :as components :refer [Sprite PositionComponent Anchor]]
             ["dart:ui" :refer [Color Paint BlendMode PaintingStyle]]
             [klondike.card :as card]
-            [klondike.protocol :refer [IPile acquire-card]]))
+            [klondike.protocol :refer [IPile acquire-card
+                                       ICanMoveCard can-move-card]]))
 
 
 ;; canvas.drawRRect(KlondikeGame.cardRRect, _borderPaint);
@@ -40,7 +41,15 @@
     (doto card
       (-> .-position (set! (.-position this)))
       (-> .-priority (set! (-> data :cards count))))
-    (set! (.-data this) (update data :cards conj card))))
+    (set! (.-data this) (update data :cards conj card))
+    (doto card (-> .-data (set! (assoc (.-data card) :pile this)))))
+
+  ICanMoveCard
+  (can-move-card
+    [this card]
+    (let [cards (:cards data)]
+      (and (seq cards)
+           (= (last cards) card)))))
 
 (defn ->Foundation
   ([] (->Foundation {:i 0 :cards []}))

@@ -1,10 +1,11 @@
 (ns klondike.card
-  (:require 
+  (:require
    ["package:flame/components.dart" :refer [PositionComponent Anchor Sprite Component]]
    ["dart:ui" :as dart.ui :refer [Color Paint PaintingStyle ColorFilter BlendMode RRect Radius Canvas Rect]]
    ["package:flame/input.dart" :refer [Vector2]]
-   ["package:flame/events.dart" :refer [DragCallbacks]]
-   [klondike.sprite :as sprite]))
+   ["package:flame/events.dart" :refer [DragCallbacks DragStartEvent]]
+   [klondike.sprite :as sprite]
+   [klondike.protocol :refer [can-move-card]]))
 
 ;;;;;;;;;;;;;;
 ;;;; Suits ;;;
@@ -248,13 +249,15 @@
 
   (onDragStart
     [this event]
-    (doto this
-      (-> .-priority (set! 100)))
+    (when (can-move-card (:pile (.-data this)) this)
+      (doto this
+        (-> .-priority (set! 100))))
     nil)
 
   (onDragUpdate
     [this event]
-    (. (.-position this) add (.-delta event))
+    (when (can-move-card (:pile data) this)
+      (. (.-position this) add (.-delta event)))
     nil)
   )
 

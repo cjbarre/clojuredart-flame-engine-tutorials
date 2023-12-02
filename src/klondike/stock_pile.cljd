@@ -4,7 +4,8 @@
    ["dart:ui" :refer [Color Paint PaintingStyle RRect Canvas Rect Offset]]
    ["package:flame/input.dart" :as input :refer [Vector2]]
    ["package:flame/components.dart" :as components :refer [PositionComponent]]
-   [klondike.protocol :refer [IPile acquire-card remove-all-cards]]
+   [klondike.protocol :refer [IPile acquire-card remove-all-cards
+                              ICanMoveCard can-move-card]]
    [klondike.card :as card]))
 
 (def stock-pile-border-paint
@@ -42,7 +43,13 @@
       (doto card
         (-> .-position (set! (.-position this)))
         (-> .-priority (set! (count (:cards data)))))
-      (set! (.-data this) (update data :cards conj card))))
+      (set! (.-data this) (update data :cards conj card))
+      (set! (.-data card) (assoc (.-data card) :pile this))))
+
+  ICanMoveCard
+  (can-move-card
+    [this ^card/Card card]
+    false)
 
   (render [this canvas]
     (.drawRRect canvas card/card-rrect stock-pile-border-paint)
@@ -57,4 +64,4 @@
    (doto (StockPile data)
      (-> .-size (set! card/card-size))
      (-> .-position (set! (Vector2 card/card-gap card/card-gap)))
-     (-> .-debugMode (set! (or debug-mode? false)))))) 
+     (-> .-debugMode (set! (or debug-mode? false))))))

@@ -3,3 +3,6 @@
 (defprotocol IPile
   (acquire-card [this card])
   (remove-all-cards [this]))
+
+(defprotocol ICanMoveCard
+  (can-move-card [this card]))
