@@ -6,3 +6,12 @@
 
 (defprotocol ICanMoveCard
   (can-move-card [this card]))
+
+(defprotocol ICanAcceptCard
+  (can-accept-card [this card]))
+
+(defprotocol IRemoveCard
+  (remove-card [this card]))
+
+(defprotocol IReturnCard
+  (return-card [this card]))

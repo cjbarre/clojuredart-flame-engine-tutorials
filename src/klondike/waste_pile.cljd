@@ -3,7 +3,10 @@
             ["package:flame/components.dart" :as components :refer [PositionComponent Anchor]]
             [klondike.card :as card]
             [klondike.protocol :refer [IPile acquire-card remove-all-cards
-                                       ICanMoveCard can-move-card]]))
+                                       ICanMoveCard can-move-card
+                                       ICanAcceptCard can-accept-card
+                                       IRemoveCard remove-card
+                                       IReturnCard return-card]]))
 
 (defprotocol IWastePile
   (fan-out-top-cards [this]))
@@ -16,6 +19,7 @@
     (let [{:keys [cards]} data
           qty (count cards)
           fan-offset (Vector2 (* card/card-width 0.2) 0)]
+      #_(println cards)
       (doseq [card cards]
         (set! (.-position card) (.-position this)))
       (cond
@@ -47,7 +51,32 @@
     [this card]
     (let [cards (:cards data)]
       (and (seq cards)
-           (= (last cards) card)))))
+           (= (last cards) card))))
+
+  ICanAcceptCard
+  (can-accept-card
+    [this card]
+    false)
+
+  IRemoveCard
+  (remove-card
+    [this card]
+    (assert (can-move-card this card))
+    (println (-> this .-data :cards))
+    (doto this
+      (-> .-data (set! (update data :cards #(->> % drop-last (into []))))))
+    (println (-> this .-data :cards))
+    (fan-out-top-cards this)
+    (println (-> this .-data :cards)))
+
+  IReturnCard
+  (return-card
+    [this card]
+    (doto card
+      (-> .-priority (set! (.indexOf (:cards data) card))))
+    (fan-out-top-cards this)))
+
+
 
 (defn ->WastePile
   ([] (->WastePile {}))

@@ -5,7 +5,8 @@
    ["package:flame/input.dart" :as input :refer [Vector2]]
    ["package:flame/components.dart" :as components :refer [PositionComponent]]
    [klondike.protocol :refer [IPile acquire-card remove-all-cards
-                              ICanMoveCard can-move-card]]
+                              ICanMoveCard can-move-card
+                              ICanAcceptCard can-accept-card]]
    [klondike.card :as card]))
 
 (def stock-pile-border-paint
@@ -48,6 +49,11 @@
 
   ICanMoveCard
   (can-move-card
+    [this ^card/Card card]
+    false)
+
+  ICanAcceptCard
+  (can-accept-card
     [this ^card/Card card]
     false)
 

@@ -5,7 +5,12 @@
    ["package:flame/input.dart" :refer [Vector2]]
    ["package:flame/events.dart" :refer [DragCallbacks DragStartEvent]]
    [klondike.sprite :as sprite]
-   [klondike.protocol :refer [can-move-card]]))
+   [klondike.protocol :refer [IPile
+                              can-move-card
+                              can-accept-card
+                              remove-card
+                              return-card
+                              acquire-card]]))
 
 ;;;;;;;;;;;;;;
 ;;;; Suits ;;;
@@ -259,7 +264,20 @@
     (when (can-move-card (:pile data) this)
       (. (.-position this) add (.-delta event)))
     nil)
-  )
+
+  (onDragEnd
+    [this event]
+    (when (can-move-card (:pile data) this)
+      (let [world (.-parent this)
+            point (. (.-position this) "+" (. (.-size this) "/" 2))
+            drop-pile (->> (. world componentsAtPoint point)
+                           (filter (partial satisfies? IPile))
+                           first)]
+        (if (and drop-pile (can-accept-card drop-pile this))
+          (do
+            (remove-card (:pile data) this)
+            (acquire-card drop-pile this))
+          (return-card (:pile data) this))))))
 
 (defn ->Card [{:keys [face-up? rank suit] :as args}]
   (let [card (Card args)
