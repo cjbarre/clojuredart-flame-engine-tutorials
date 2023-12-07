@@ -19,7 +19,6 @@
     (let [{:keys [cards]} data
           qty (count cards)
           fan-offset (Vector2 (* card/card-width 0.2) 0)]
-      #_(println cards)
       (doseq [card cards]
         (set! (.-position card) (.-position this)))
       (cond
@@ -62,12 +61,9 @@
   (remove-card
     [this card]
     (assert (can-move-card this card))
-    (println (-> this .-data :cards))
     (doto this
       (-> .-data (set! (update data :cards #(->> % drop-last (into []))))))
-    (println (-> this .-data :cards))
-    (fan-out-top-cards this)
-    (println (-> this .-data :cards)))
+    (fan-out-top-cards this))
 
   IReturnCard
   (return-card

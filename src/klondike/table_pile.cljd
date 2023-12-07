@@ -13,6 +13,8 @@
 
 (def fan-offset (Vector2 0 (* card/card-height 0.05)))
 
+(def fan-offset2 (Vector2 0 (* card/card-height 0.20)))
+
 (def border-paint
   (doto (Paint)
     (-> .-style (set! PaintingStyle/stroke))
@@ -20,7 +22,8 @@
     (-> .-color (set! (Color 0x50ffffff)))))
 
 (defprotocol ITablePile
-  (flip-top-card [this]))
+  (flip-top-card [this])
+  (lay-out-cards [this]))
 
 (deftype ^:type-only TablePile [^:mutable data]
   :extends (PositionComponent)
@@ -33,6 +36,23 @@
   (flip-top-card
     [this]
     (card/flip (last (:cards data))))
+
+  (lay-out-cards
+    [this]
+    (let [{:keys [cards]} data]
+      (when (seq cards)
+        (let [first-card (get cards 0)]
+          (doto first-card
+            (-> .-position (set! (.-position this))))
+          (doseq [card (rest cards)]
+            (let [previous-card (get cards (dec (.indexOf cards card)))
+                  new-fan-offset (if (-> previous-card .-data :face-up? not)
+                                   fan-offset
+                                   fan-offset2)
+                  previous-card-position (.-position previous-card)
+                  new-card-position (. previous-card-position "+" new-fan-offset)]
+              (doto card
+                (-> .-position (set! new-card-position)))))))))
 
   IPile
   (acquire-card
@@ -49,7 +69,8 @@
         (-> .-priority (set! (count cards))))
       (doto this
         (-> .-data (set! (update data :cards conj card))))
-      (doto card (-> .-data (set! (assoc (.-data card) :pile this))))))
+      (doto card (-> .-data (set! (assoc (.-data card) :pile this)))))
+    (lay-out-cards this))
 
   ICanMoveCard
   (can-move-card
@@ -86,7 +107,8 @@
       (doto this (-> .-data (set! (update (.-data this) :cards #(take num-cards-to-keep %)))))
       (when (and (seq (-> this .-data :cards))
                  (-> this .-data :cards last :face-up? not))
-        (flip-top-card this))))
+        (flip-top-card this)))
+    (lay-out-cards this))
 
   IReturnCard
   (return-card
@@ -101,7 +123,8 @@
                                  fan-offset))]
       (doto card
         (-> .-position (set! new-card-position))
-        (-> .-priority (set! card-index))))))
+        (-> .-priority (set! card-index))))
+    (lay-out-cards this)))
 
 (defn ->TablePile
   ([] (->TablePile {:i 0}))
