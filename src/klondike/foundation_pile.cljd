@@ -50,9 +50,7 @@
   ICanMoveCard
   (can-move-card
     [this card]
-    (let [cards (:cards data)]
-      (and (seq cards)
-           (= (last cards) card))))
+    false)
 
   ICanAcceptCard
   (can-accept-card
@@ -62,15 +60,14 @@
           cards (:cards data)
           top-card-rank (if (not (seq cards))
                           0
-                          (-> cards last .-data :rank))]
+                          (-> cards last .-data :rank :value))]
       (and (= card-suit (:suit data))
            (= (:value card-rank) (inc top-card-rank)))))
 
   IRemoveCard
   (remove-card
     [this card]
-    (assert (can-move-card this card))
-    (drop-last (:cards data)))
+    false)
 
   IReturnCard
   (return-card

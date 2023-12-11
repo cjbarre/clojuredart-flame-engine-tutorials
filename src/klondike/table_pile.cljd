@@ -68,7 +68,7 @@
       (doto card
         (-> .-priority (set! (count cards))))
       (doto this
-        (-> .-data (set! (update data :cards conj card))))
+        (-> .-data (set! (update data :cards #(-> % (into []) (conj card))))))
       (doto card (-> .-data (set! (assoc (.-data card) :pile this)))))
     (lay-out-cards this))
 
@@ -77,9 +77,7 @@
     [this card]
     (let [cards (:cards data)]
       (and (seq cards)
-           (= (last cards) card)))
-
-    )
+           (= (last cards) card))))
 
   ICanAcceptCard
   (can-accept-card
@@ -104,7 +102,7 @@
            :keys [face-up?]} (.-data card)
           _ (assert (and (= this card-pile) face-up?))
           num-cards-to-keep (.indexOf cards card)]
-      (doto this (-> .-data (set! (update (.-data this) :cards #(take num-cards-to-keep %)))))
+      (doto this (-> .-data (set! (update (.-data this) :cards #(->> % (take num-cards-to-keep) (into []))))))
       (when (and (seq (-> this .-data :cards))
                  (-> this .-data :cards last :face-up? not))
         (flip-top-card this)))
