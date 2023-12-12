@@ -50,9 +50,14 @@
                                    fan-offset
                                    fan-offset2)
                   previous-card-position (.-position previous-card)
-                  new-card-position (. previous-card-position "+" new-fan-offset)]
+                  new-card-position (. previous-card-position "+" new-fan-offset)
+                  new-pile-height (double (+ (* card/card-height 1.5)
+                                             (- (-> cards last .-y)
+                                                (-> cards first .-y))))]
               (doto card
-                (-> .-position (set! new-card-position)))))))))
+                (-> .-position (set! new-card-position)))
+              (doto this
+                (-> .-height (set! new-pile-height)))))))))
 
   IPile
   (acquire-card
