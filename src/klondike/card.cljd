@@ -5,7 +5,9 @@
    ["package:flame/input.dart" :refer [Vector2]]
    ["package:flame/events.dart" :refer [DragCallbacks DragStartEvent]]
    [klondike.sprite :as sprite]
-   [klondike.protocol :refer [IPile
+   [klondike.protocol :refer [ITablePile 
+                              cards-on-top 
+                              IPile
                               can-move-card
                               can-accept-card
                               remove-card
@@ -252,32 +254,58 @@
     (str (-> this .-data :rank :label)
          (-> this .-data :suit :label)))
 
-  (onDragStart
+ (onDragStart
     [this event]
-    (when (can-move-card (:pile (.-data this)) this)
-      (doto this
-        (-> .-priority (set! 100))))
-    nil)
+    (let [{:keys [pile] :as data} (.-data this)]
+      (when (can-move-card pile this)
+        (doto this (-> .-priority (set! 100)))
+        (when (satisfies? ITablePile pile)
+          (let [attached-cards (->> (cards-on-top pile this)
+                                    (reduce
+                                     (fn [acc card]
+                                       (doto card
+                                         (-> .-priority (set! (+ (count acc) 101))))
+                                       (conj acc card))
+                                     []))]
+            (doto this
+              (-> .-data (set! (assoc data :attached-cards attached-cards)))))))
+      nil))
 
   (onDragUpdate
     [this event]
-    (when (can-move-card (:pile data) this)
-      (. (.-position this) add (.-delta event)))
-    nil)
+    (let [{:keys [pile attached-cards]} (.-data this)
+          delta (.-delta event)]
+      (when (can-move-card pile this)
+        (. (.-position this) add delta)
+        (doseq [card attached-cards]
+          (. (.-position card) add delta)))
+      nil))
 
   (onDragEnd
     [this event]
     (when (can-move-card (:pile data) this)
-      (let [world (.-parent this)
+      (let [{:keys [pile attached-cards]} data
+            world (.-parent this)
             point (. (.-position this) "+" (. (.-size this) "/" 2))
             drop-pile (->> (. world componentsAtPoint point)
                            (filter (partial satisfies? IPile))
                            first)]
         (if (and drop-pile (can-accept-card drop-pile this))
           (do
-            (remove-card (:pile data) this)
-            (acquire-card drop-pile this))
-          (return-card (:pile data) this))))))
+            (remove-card pile this)
+            (acquire-card drop-pile this)
+            (when (seq attached-cards)
+              (doseq [card attached-cards]
+                #_(remove-card pile card)
+                (acquire-card drop-pile card))
+              (doto this (-> .-data (set! (assoc data :attached-cards []))))))
+          (do
+            (return-card pile this)
+            (when (seq attached-cards)
+              (doseq [card attached-cards]
+                (return-card pile card))
+              (doto this (-> .-data (set! (assoc data :attached-cards [])))))))
+        nil))))
 
 (defn ->Card [{:keys [face-up? rank suit] :as args}]
   (let [card (Card args)

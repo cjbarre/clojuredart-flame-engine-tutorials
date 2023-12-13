@@ -3,7 +3,8 @@
             ["package:flame/components.dart" :as components :refer [PositionComponent]]
             ["dart:ui" :refer [Color Paint BlendMode PaintingStyle]]
             [klondike.card :as card]
-            [klondike.protocol :refer [IPile acquire-card
+            [klondike.protocol :refer [ITablePile flip-top-card lay-out-cards cards-on-top 
+                                       IPile acquire-card
                                        ICanMoveCard can-move-card
                                        ICanAcceptCard can-accept-card
                                        IRemoveCard remove-card
@@ -20,10 +21,6 @@
     (-> .-style (set! PaintingStyle/stroke))
     (-> .-strokeWidth (set! 10))
     (-> .-color (set! (Color 0x50ffffff)))))
-
-(defprotocol ITablePile
-  (flip-top-card [this])
-  (lay-out-cards [this]))
 
 (deftype ^:type-only TablePile [^:mutable data]
   :extends (PositionComponent)
@@ -59,6 +56,16 @@
               (doto this
                 (-> .-height (set! new-pile-height)))))))))
 
+  (cards-on-top
+    [this card]
+    (let [{:keys [face-up?]} (.-data card)
+          {:keys [cards]} (.-data this)
+          card-index (.indexOf cards card)]
+      (assert face-up? (>= card-index 0))
+      (->> cards
+           (drop (inc card-index))
+           (into []))))
+
   IPile
   (acquire-card
     [this ^card/Card card]
@@ -80,9 +87,8 @@
   ICanMoveCard
   (can-move-card
     [this card]
-    (let [cards (:cards data)]
-      (and (seq cards)
-           (= (last cards) card))))
+    (let [{:keys [face-up?]} (.-data card)]
+      face-up?))
 
   ICanAcceptCard
   (can-accept-card
@@ -101,17 +107,17 @@
 
   IRemoveCard
   (remove-card
-    [this card]
-    (let [{:keys [cards]} data
-          {card-pile :pile
-           :keys [face-up?]} (.-data card)
-          _ (assert (and (= this card-pile) face-up?))
-          num-cards-to-keep (.indexOf cards card)]
-      (doto this (-> .-data (set! (update (.-data this) :cards #(->> % (take num-cards-to-keep) (into []))))))
-      (when (and (seq (-> this .-data :cards))
-                 (-> this .-data :cards last :face-up? not))
-        (flip-top-card this)))
-    (lay-out-cards this))
+   [this card]
+   (let [{:keys [cards]} data
+         {card-pile :pile
+          :keys [face-up?]} (.-data card)
+         _ (assert (and (= this card-pile) face-up?))
+         num-cards-to-keep (.indexOf cards card)]
+     (doto this (-> .-data (set! (update (.-data this) :cards #(->> % (take num-cards-to-keep) (into []))))))
+     (when (and (seq (-> this .-data :cards))
+                (-> this .-data :cards last .-data :face-up? not))
+       (flip-top-card this))) 
+   (lay-out-cards this))
 
   IReturnCard
   (return-card

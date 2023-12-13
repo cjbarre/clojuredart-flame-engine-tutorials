@@ -15,3 +15,8 @@
 
 (defprotocol IReturnCard
   (return-card [this card]))
+
+(defprotocol ITablePile
+  (flip-top-card [this])
+  (lay-out-cards [this])
+  (cards-on-top [this card]))

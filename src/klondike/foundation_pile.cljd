@@ -44,7 +44,7 @@
     (doto card
       (-> .-position (set! (.-position this)))
       (-> .-priority (set! (-> data :cards count))))
-    (set! (.-data this) (update data :cards conj card))
+    (set! (.-data this) (update data :cards #(-> % (conj card) (into []))))
     (doto card (-> .-data (set! (assoc (.-data card) :pile this)))))
 
   ICanMoveCard

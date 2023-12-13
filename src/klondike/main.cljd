@@ -6,10 +6,10 @@
             ["package:flame/camera.dart" :as camera :refer [World]] 
             [klondike.card :as card]
             [klondike.sprite :as sprite]
-            [klondike.protocol :refer [acquire-card]]
+            [klondike.protocol :refer [acquire-card flip-top-card]]
             [klondike.stock-pile :refer [->StockPile]]
             [klondike.foundation-pile :refer [->Foundation]]
-            [klondike.table-pile :as table-pile :refer [->TablePile flip-top-card]]
+            [klondike.table-pile :as table-pile :refer [->TablePile]]
             [klondike.waste-pile :refer [->WastePile]]
             [klondike.camera :refer [->Camera setup-camera]]))
 
@@ -65,7 +65,7 @@
     (doseq [[table-pile cards] (zipmap table-piles piles-of-cards-to-deal)]
       (doseq [card cards]
         (acquire-card table-pile card))
-      (table-pile/flip-top-card table-pile))
+      (flip-top-card table-pile))
 
     (doseq [card (drop num-cards-to-deal cards)]
       (acquire-card stock-pile card))))
@@ -78,7 +78,7 @@
          ranks (card/ranks)
          waste-pile (->WastePile {:cards []})
          stock-pile (->StockPile {:cards [] :waste-pile waste-pile})
-         foundations (mapv #(->Foundation {:i % :suit (get suits %) :debug-mode? debug-mode?}) (range 4))
+         foundations (mapv #(->Foundation {:i % :suit (get suits %) :debug-mode? debug-mode? :cards []}) (range 4))
          piles (mapv #(->TablePile {:i % :debug-mode? debug-mode? :cards []}) (range 7))
          cards (shuffle (card/cards2 {:ranks ranks :suits suits}))
          ;; _ (doseq [card cards] (acquire-card stock-pile card))
